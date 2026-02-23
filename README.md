@@ -11,3 +11,4 @@ Content performance analytics dashboard for El Gordo's shorts production.
 - React 18
 - Tailwind CSS
 - Deployed on Vercel
+
