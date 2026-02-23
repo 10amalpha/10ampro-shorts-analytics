@@ -1,4 +1,22 @@
-import { useState, useMemo } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10AMPRO Shorts Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0f14;color:#e2e4e9;font-family:'Space Grotesk',sans-serif}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
 
 // ═══════════════════════════════════════════════════════════
 // 10AMPRO SHORTS ANALYTICS — EL GORDO CONTENT INTELLIGENCE
@@ -132,7 +150,7 @@ function ContentRow({ item, rank, isTop }) {
   );
 }
 
-export default function ShortsAnalytics() {
+function ShortsAnalytics() {
   const [view, setView] = useState("overview");
   const [sortBy, setSortBy] = useState("views");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
@@ -209,7 +227,6 @@ export default function ShortsAnalytics() {
       minHeight: "100vh",
       padding: 0,
     }}>
-      <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {/* Header */}
       <div style={{
@@ -533,3 +550,9 @@ export default function ShortsAnalytics() {
     </div>
   );
 }
+
+const App = ShortsAnalytics;
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
