@@ -196,11 +196,11 @@ function ContentRow({ item, rank, isTop }) {
 
 // All time periods derived from data
 const ALL_PERIODS = (() => {
-  const dates = ACTIVE_DATA.map(d => d.date).sort();
+  const dates = SAMPLE_DATA.map(d => d.date).sort();
   const first = dates[0], last = dates[dates.length - 1];
   const periods = [{ label: "All Time", start: first, end: last }];
   const months = {};
-  ACTIVE_DATA.forEach(d => {
+  SAMPLE_DATA.forEach(d => {
     const ym = d.date.slice(0,7);
     if (!months[ym]) months[ym] = { start: d.date, end: d.date };
     if (d.date < months[ym].start) months[ym].start = d.date;
@@ -222,7 +222,7 @@ function ShortsAnalytics() {
 
   const ACTIVE_DATA = useMemo(() => {
     const p = ALL_PERIODS[periodIdx];
-    return ACTIVE_DATA.filter(d => d.date >= p.start && d.date <= p.end);
+    return SAMPLE_DATA.filter(d => d.date >= p.start && d.date <= p.end);
   }, [periodIdx]);
 
   const analytics = useMemo(() => {
