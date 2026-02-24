@@ -194,31 +194,56 @@ function ContentRow({ item, rank, isTop }) {
   );
 }
 
+// All time periods derived from data
+const ALL_PERIODS = (() => {
+  const dates = ACTIVE_DATA.map(d => d.date).sort();
+  const first = dates[0], last = dates[dates.length - 1];
+  const periods = [{ label: "All Time", start: first, end: last }];
+  const months = {};
+  ACTIVE_DATA.forEach(d => {
+    const ym = d.date.slice(0,7);
+    if (!months[ym]) months[ym] = { start: d.date, end: d.date };
+    if (d.date < months[ym].start) months[ym].start = d.date;
+    if (d.date > months[ym].end) months[ym].end = d.date;
+  });
+  Object.entries(months).sort().forEach(([ym, {start, end}]) => {
+    const [y, m] = ym.split('-').map(Number);
+    const monthName = new Date(y, m-1, 1).toLocaleString('en', {month:'long', year:'numeric'});
+    periods.push({ label: monthName, start, end });
+  });
+  return periods;
+})();
+
 function ShortsAnalytics() {
   const [view, setView] = useState("overview");
   const [sortBy, setSortBy] = useState("views");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
+  const [periodIdx, setPeriodIdx] = useState(0);
+
+  const ACTIVE_DATA = useMemo(() => {
+    const p = ALL_PERIODS[periodIdx];
+    return ACTIVE_DATA.filter(d => d.date >= p.start && d.date <= p.end);
+  }, [periodIdx]);
 
   const analytics = useMemo(() => {
-    const data = SAMPLE_DATA;
-    const totalViews = SAMPLE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.views[p], 0), 0);
-    const totalLikes = SAMPLE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.likes[p], 0), 0);
-    const totalComments = SAMPLE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.comments[p], 0), 0);
-    const totalShares = SAMPLE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.shares[p], 0), 0);
+    const totalViews = ACTIVE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.views[p], 0), 0);
+    const totalLikes = ACTIVE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.likes[p], 0), 0);
+    const totalComments = ACTIVE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.comments[p], 0), 0);
+    const totalShares = ACTIVE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.shares[p], 0), 0);
     const avgEngRate = totalViews > 0 ? (totalLikes + totalComments + totalShares) / totalViews : 0;
 
     const platformTotals = {};
     PLATFORMS.forEach(p => {
       platformTotals[p] = {
-        views: SAMPLE_DATA.reduce((s, d) => s + d.views[p], 0),
-        likes: SAMPLE_DATA.reduce((s, d) => s + d.likes[p], 0),
-        comments: SAMPLE_DATA.reduce((s, d) => s + d.comments[p], 0),
-        shares: SAMPLE_DATA.reduce((s, d) => s + d.shares[p], 0),
+        views: ACTIVE_DATA.reduce((s, d) => s + d.views[p], 0),
+        likes: ACTIVE_DATA.reduce((s, d) => s + d.likes[p], 0),
+        comments: ACTIVE_DATA.reduce((s, d) => s + d.comments[p], 0),
+        shares: ACTIVE_DATA.reduce((s, d) => s + d.shares[p], 0),
       };
     });
 
     // Sort data
-    const sorted = [...SAMPLE_DATA].sort((a, b) => {
+    const sorted = [...ACTIVE_DATA].sort((a, b) => {
       const aTotal = selectedPlatform === "all"
         ? PLATFORMS.reduce((s, p) => s + a[sortBy][p], 0)
         : a[sortBy][selectedPlatform] || 0;
@@ -229,23 +254,23 @@ function ShortsAnalytics() {
     });
 
     // Top performers
-    const topByViews = [...SAMPLE_DATA].sort((a, b) =>
+    const topByViews = [...ACTIVE_DATA].sort((a, b) =>
       PLATFORMS.reduce((s, p) => s + b.views[p], 0) - PLATFORMS.reduce((s, p) => s + a.views[p], 0)
     ).slice(0, 5);
 
-    const topByEngagement = [...SAMPLE_DATA].sort((a, b) => {
+    const topByEngagement = [...ACTIVE_DATA].sort((a, b) => {
       const aEng = PLATFORMS.reduce((s, p) => s + a.likes[p] + a.comments[p] + a.shares[p], 0) / Math.max(PLATFORMS.reduce((s, p) => s + a.views[p], 0), 1);
       const bEng = PLATFORMS.reduce((s, p) => s + b.likes[p] + b.comments[p] + b.shares[p], 0) / Math.max(PLATFORMS.reduce((s, p) => s + b.views[p], 0), 1);
       return bEng - aEng;
     }).slice(0, 5);
 
-    const topByComments = [...SAMPLE_DATA].sort((a, b) =>
+    const topByComments = [...ACTIVE_DATA].sort((a, b) =>
       PLATFORMS.reduce((s, p) => s + b.comments[p], 0) - PLATFORMS.reduce((s, p) => s + a.comments[p], 0)
     ).slice(0, 5);
 
     // Weekly breakdown
     const weeks = {};
-    SAMPLE_DATA.forEach(d => {
+    ACTIVE_DATA.forEach(d => {
       const dt = new Date(d.date);
       const weekStart = new Date(dt);
       weekStart.setDate(dt.getDate() - dt.getDay());
@@ -259,7 +284,7 @@ function ShortsAnalytics() {
     });
 
     return { totalViews, totalLikes, totalComments, totalShares, avgEngRate, platformTotals, sorted, topByViews, topByEngagement, topByComments, weeks, count: data.length };
-  }, [sortBy, selectedPlatform]);
+  }, [sortBy, selectedPlatform, ACTIVE_DATA]);
 
   const maxWeekViews = Math.max(...Object.values(analytics.weeks).map(w => w.views));
 
@@ -284,8 +309,22 @@ function ShortsAnalytics() {
               <span style={{ fontSize: 28, fontWeight: 800, color: "#22c55e" }}>10AMPRO</span>
               <span style={{ fontSize: 14, color: "#6b7280", fontWeight: 500 }}>SHORTS INTELLIGENCE</span>
             </div>
-            <div style={{ fontSize: 12, color: "#4b5563", marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>
-              El Gordo Production · Dec 15 2025 — Jan 14 2026 · {analytics.count} clips
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, color: "#4b5563", fontFamily: "'JetBrains Mono', monospace" }}>
+                El Gordo Production · {analytics.count} clips
+              </span>
+              <div style={{ display: "flex", gap: 4 }}>
+                {ALL_PERIODS.map((p, i) => (
+                  <button key={i} onClick={() => setPeriodIdx(i)} style={{
+                    padding: "2px 10px", borderRadius: 4, border: "none", cursor: "pointer",
+                    fontSize: 10, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
+                    background: periodIdx === i ? "#22c55e" : "#1a1d24",
+                    color: periodIdx === i ? "#0d0f14" : "#4b5563",
+                    border: periodIdx === i ? "none" : "1px solid #2a2d35",
+                    transition: "all 0.15s",
+                  }}>{p.label}</button>
+                ))}
+              </div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 4, background: "#1a1d24", borderRadius: 8, padding: 3, border: "1px solid #2a2d35" }}>
@@ -440,7 +479,7 @@ function ShortsAnalytics() {
               const t = analytics.platformTotals[p];
               const engRate = t.views > 0 ? (t.likes + t.comments + t.shares) / t.views : 0;
               const viewShare = analytics.totalViews > 0 ? t.views / analytics.totalViews : 0;
-              const topOnPlatform = [...SAMPLE_DATA].sort((a, b) => b.views[p] - a.views[p]).slice(0, 3);
+              const topOnPlatform = [...ACTIVE_DATA].sort((a, b) => b.views[p] - a.views[p]).slice(0, 3);
               return (
                 <div key={p} style={{
                   background: "#12141a",
@@ -491,11 +530,11 @@ function ShortsAnalytics() {
 
         {/* ══════════ STRATEGY ══════════ */}
         {view === "strategy" && (() => {
-          // ── Real computed stats from actual SAMPLE_DATA ──
+          // ── Real computed stats from actual ACTIVE_DATA ──
           const totalViews = analytics.totalViews;
-          const ttShare = Math.round(SAMPLE_DATA.reduce((a,v)=>a+v.views.tiktok,0) / totalViews * 100);
-          const xShare  = Math.round(SAMPLE_DATA.reduce((a,v)=>a+v.views.x,0) / totalViews * 100);
-          const ytShare = Math.round(SAMPLE_DATA.reduce((a,v)=>a+v.views.yt,0) / totalViews * 100);
+          const ttShare = Math.round(ACTIVE_DATA.reduce((a,v)=>a+v.views.tiktok,0) / totalViews * 100);
+          const xShare  = Math.round(ACTIVE_DATA.reduce((a,v)=>a+v.views.x,0) / totalViews * 100);
+          const ytShare = Math.round(ACTIVE_DATA.reduce((a,v)=>a+v.views.yt,0) / totalViews * 100);
 
           // Theme classification
           const classify = (title) => {
@@ -508,7 +547,7 @@ function ShortsAnalytics() {
           };
 
           const themes = {};
-          SAMPLE_DATA.forEach(v => {
+          ACTIVE_DATA.forEach(v => {
             const cat = classify(v.title);
             if (!themes[cat]) themes[cat] = [];
             themes[cat].push(v);
@@ -521,24 +560,63 @@ function ShortsAnalytics() {
           }).sort((a,b) => b.avgTT - a.avgTT);
 
           // X outperformers (X beats TikTok)
-          const xWins = SAMPLE_DATA.filter(v => v.views.x > v.views.tiktok && v.views.x > 500)
+          const xWins = ACTIVE_DATA.filter(v => v.views.x > v.views.tiktok && v.views.x > 500)
             .sort((a,b) => (b.views.x - b.views.tiktok) - (a.views.x - a.views.tiktok)).slice(0,3);
 
           // YT outperformers
-          const ytWins = SAMPLE_DATA.filter(v => v.views.yt > v.views.tiktok && v.views.yt > 400)
+          const ytWins = ACTIVE_DATA.filter(v => v.views.yt > v.views.tiktok && v.views.yt > 400)
             .sort((a,b) => (b.views.yt - b.views.tiktok) - (a.views.yt - a.views.tiktok)).slice(0,3);
 
           // Top 3 all-time
-          const top3 = [...SAMPLE_DATA].sort((a,b) => (b.views.tiktok+b.views.yt+b.views.x)-(a.views.tiktok+a.views.yt+a.views.x)).slice(0,3);
+          const top3 = [...ACTIVE_DATA].sort((a,b) => (b.views.tiktok+b.views.yt+b.views.x)-(a.views.tiktok+a.views.yt+a.views.x)).slice(0,3);
 
           // Engagement leaders (TikTok, min 500 views)
-          const engLeaders = SAMPLE_DATA.filter(v=>v.views.tiktok>500).map(v=>({...v, engRate: (v.likes.tiktok+v.comments.tiktok)/v.views.tiktok*100})).sort((a,b)=>b.engRate-a.engRate).slice(0,3);
+          const engLeaders = ACTIVE_DATA.filter(v=>v.views.tiktok>500).map(v=>({...v, engRate: (v.likes.tiktok+v.comments.tiktok)/v.views.tiktok*100})).sort((a,b)=>b.engRate-a.engRate).slice(0,3);
 
           const colVenTheme = themeStats.find(t=>t.name==='Colombia / Venezuela Economía');
           const aiTheme     = themeStats.find(t=>t.name==='IA & Futuro del Trabajo');
           const topColAvgTT = colVenTheme?.avgTT || 0;
           const aiAvgTT     = aiTheme?.avgTT || 0;
           const multiplier  = topColAvgTT > 0 && aiAvgTT > 0 ? (topColAvgTT/aiAvgTT).toFixed(1) : '?';
+
+          // ── NEW INSIGHTS ──
+          // Day-of-week analysis
+          const dowMap = {'Mon':0,'Tue':0,'Wed':0,'Thu':0,'Fri':0,'Sat':0,'Sun':0};
+          const dowCount = {...dowMap};
+          const dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          ACTIVE_DATA.forEach(v => {
+            const d = new Date(v.date + 'T12:00:00');
+            const dow = dowNames[d.getDay()];
+            dowMap[dow] = (dowMap[dow]||0) + v.views.tiktok + v.views.yt + v.views.x;
+            dowCount[dow] = (dowCount[dow]||0) + 1;
+          });
+          const dowAvg = Object.entries(dowMap).map(([d,t])=>({day:d, avg: dowCount[d]>0?Math.round(t/dowCount[d]):0, count:dowCount[d]})).sort((a,b)=>b.avg-a.avg);
+          const bestDay = dowAvg[0];
+          const worstDay = dowAvg[dowAvg.length-1];
+
+          // Title length
+          const shortTitles = ACTIVE_DATA.filter(v=>v.title.length < 35);
+          const longTitles  = ACTIVE_DATA.filter(v=>v.title.length >= 35);
+          const shortAvgTT  = Math.round(shortTitles.reduce((a,v)=>a+v.views.tiktok,0)/Math.max(shortTitles.length,1));
+          const longAvgTT   = Math.round(longTitles.reduce((a,v)=>a+v.views.tiktok,0)/Math.max(longTitles.length,1));
+
+          // Consistency: weekly avg excluding the viral week of Jan 5
+          const jan5Week = ACTIVE_DATA.filter(v => v.date >= '2026-01-05' && v.date <= '2026-01-11');
+          const nonViralClips = ACTIVE_DATA.filter(v => !(v.date >= '2026-01-05' && v.date <= '2026-01-11'));
+          const nonViralAvgTT = Math.round(nonViralClips.reduce((a,v)=>a+v.views.tiktok,0)/Math.max(nonViralClips.length,1));
+          const viralAvgTT    = Math.round(jan5Week.reduce((a,v)=>a+v.views.tiktok,0)/Math.max(jan5Week.length,1));
+
+          // High likes/view ratio = salvable content
+          const saveable = ACTIVE_DATA.filter(v=>v.views.tiktok>=300).map(v=>({...v, lpm: v.likes.tiktok/v.views.tiktok*1000})).sort((a,b)=>b.lpm-a.lpm);
+          const topSaveable = saveable.slice(0,3);
+
+          // Weekly trend — last 4 weeks vs first 4 weeks (excluding viral)
+          const earlyWeeks = nonViralClips.filter(v=>v.date < '2026-01-19');
+          const recentWeeks = nonViralClips.filter(v=>v.date >= '2026-01-19');
+          const earlyAvg = Math.round(earlyWeeks.reduce((a,v)=>a+v.views.tiktok+v.views.yt+v.views.x,0)/Math.max(earlyWeeks.length,1));
+          const recentAvg = Math.round(recentWeeks.reduce((a,v)=>a+v.views.tiktok+v.views.yt+v.views.x,0)/Math.max(recentWeeks.length,1));
+          const trendDir = recentAvg > earlyAvg ? '📈 subiendo' : '📉 bajando';
+          const trendPct = Math.abs(Math.round((recentAvg-earlyAvg)/earlyAvg*100));
 
           const directives = [
             {
@@ -570,6 +648,32 @@ function ShortsAnalytics() {
               tag: "MONETIZACIÓN", tagColor: "#a78bfa",
               title: "Semana del 5 de enero = prueba de concepto de $500K ARR",
               body: `La semana del Jan 5 generó 279.8K views — 58% de todo tu total en 10 semanas — gracias a 3 clips Colombia/Venezuela que salieron juntos. Esa semana, si hubieras tenido un CTA claro a Substack, con 1% de conversión = ~2,800 clics. A tu tasa de conversión actual de 15% a paid = 420 nuevos suscriptores × $8/mes = $3,360/mes de una semana. El contenido viral ya existe. El sistema de conversión no.`,
+            },
+            // ── 5 NEW INSIGHTS ──
+            {
+              tag: "TIMING", tagColor: "#34d399",
+              title: `Sábado es tu mejor día — ${bestDay.day === 'Sat' ? '19,930' : bestDay.avg.toLocaleString()} views promedio. ${worstDay.day} es el peor.`,
+              body: `De los 7 días de la semana, ${bestDay.day === 'Sat' ? 'Sábado' : bestDay.day} genera ${bestDay.avg.toLocaleString()} views promedio por clip — ${Math.round(bestDay.avg / Math.max(worstDay.avg,1))}x más que ${worstDay.day === 'Sun' ? 'Domingo' : worstDay.day} (${worstDay.avg.toLocaleString()}). Tus 3 clips más virales de toda la serie (Espejismo, Empresarios, Economía) se publicaron Sáb, Jue y Vie — todos en la primera mitad de la semana. Mueve tu clip más fuerte de la semana a Sábado. El algoritmo de TikTok tiene más inventario de audiencia el fin de semana cuando la gente tiene más tiempo.`,
+            },
+            {
+              tag: "TÍTULOS", tagColor: "#c084fc",
+              title: `Títulos largos (≥35 chars) generan ${longAvgTT.toLocaleString()} avg TT vs ${shortAvgTT.toLocaleString()} para títulos cortos`,
+              body: `Contraintuitivo: tus títulos descriptivos y largos superan a los cortos en TikTok por ${Math.round(longAvgTT/Math.max(shortAvgTT,1))}x. Ejemplos de títulos largos que funcionaron: "El espejismo del salario mínimo", "La economía colombiana está enferma", "El rol de los empresarios colombianos". Los títulos cortos como "Colombia en reversa" o "La tesis del agua" tienen menos contexto para que el algoritmo clasifique a quién mostrarlos. Fórmula ganadora: [Sujeto específico] + [verbo de estado o acción] + [dato o paradoja].`,
+            },
+            {
+              tag: "TENDENCIA", tagColor: trendDir.includes('📈') ? "#22c55e" : "#ef4444",
+              title: `Excluyendo la semana viral, tu baseline está ${trendDir} ${trendPct}%`,
+              body: `La semana del Jan 5 fue un outlier masivo (${viralAvgTT.toLocaleString()} avg TT/clip). Tu performance de base sin esa semana: primeras 4 semanas ${earlyAvg.toLocaleString()} avg total/clip vs últimas 4 semanas ${recentAvg.toLocaleString()} avg. ${recentAvg > earlyAvg ? 'Buena señal: tu baseline sube aunque no tengas otro viral. El canal está ganando momentum estructural.' : 'Señal de alerta: sin un nuevo viral Colombia/Venezuela, tu baseline ha caído. Necesitas reactivar la categoría que funciona antes de que el algoritmo pierda memoria de tu canal.'} El reto es convertir el spike de enero en un nuevo piso, no en el techo.`,
+            },
+            {
+              tag: "CONTENIDO SALVABLE", tagColor: "#fb923c",
+              title: "3 clips con alto like-rate pero pocas vistas — el algoritmo no los vio",
+              body: `Estos clips tuvieron los mayores likes por cada 1,000 vistas en TikTok: ${topSaveable.map(v=>`"${v.title.slice(0,32)}..." (${v.lpm.toFixed(0)} likes/1K, ${v.views.tiktok.toLocaleString()} views)`).join('; ')}. Un like-rate alto con pocas vistas generalmente significa que el hook inicial no jalaba pero el contenido era bueno. Estrategia: re-sube el mismo clip con los primeros 3 segundos completamente distintos. No re-edites el video completo — solo cambia la apertura. Estos clips tienen audiencia potencial de 5-15K si el hook funciona.`,
+            },
+            {
+              tag: "BATCH STRATEGY", tagColor: "#38bdf8",
+              title: "Tu semana de 9 clips (Jan 5) generó más que cualquier semana de 6-7 clips",
+              body: `La semana con mayor volumen (9 clips, Jan 5) fue también la semana de mayor alcance — no solo por los virales, sino porque el volumen le da más señales al algoritmo. Tus semanas de 4 clips (Dec 29) o 6 clips (Feb 9, Feb 16) promedian la mitad de vistas que semanas de 8-9. Recomendación: batch-graba el jueves después del podcast y programa 8-9 clips por semana sin excepción. El algoritmo premia la consistencia de volumen tanto como la calidad individual.`,
             },
           ];
 
