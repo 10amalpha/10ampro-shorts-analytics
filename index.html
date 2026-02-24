@@ -328,7 +328,7 @@ function ShortsAnalytics() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 4, background: "#1a1d24", borderRadius: 8, padding: 3, border: "1px solid #2a2d35" }}>
-            {[["overview", "Overview"], ["rankings", "Rankings"], ["platforms", "Platforms"], ["strategy", "Strategy"]].map(([key, label]) => (
+            {[["overview", "Overview"], ["rankings", "Rankings"], ["platforms", "Platforms"], ["strategy", "Strategy"], ["conversion", "Conversión"]].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setView(key)}
@@ -748,6 +748,182 @@ function ShortsAnalytics() {
                     ))}
                   </div>
                 </div>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* ══════════ CONVERSIÓN ══════════ */}
+        {view === "conversion" && (() => {
+          // Intent score = views × (comments/1K) — clips that drive action
+          const withIntent = ACTIVE_DATA.map(v => {
+            const cpm = v.views.tiktok > 0 ? v.comments.tiktok / v.views.tiktok * 1000 : 0;
+            const lpm = v.views.tiktok > 0 ? v.likes.tiktok / v.views.tiktok * 1000 : 0;
+            const clRatio = v.likes.tiktok > 0 ? v.comments.tiktok / v.likes.tiktok : 0;
+            const intentScore = Math.round(v.views.tiktok * cpm);
+            return { ...v, cpm: +cpm.toFixed(1), lpm: +lpm.toFixed(1), clRatio: +clRatio.toFixed(3), intentScore };
+          });
+
+          const byIntent = [...withIntent].sort((a, b) => b.intentScore - a.intentScore);
+          const byCpm = [...withIntent].filter(v => v.views.tiktok >= 300).sort((a, b) => b.cpm - a.cpm);
+
+          const totalComments = withIntent.reduce((s, v) => s + v.comments.tiktok, 0);
+          const totalViews = withIntent.reduce((s, v) => s + v.views.tiktok, 0);
+          const avgCpm = totalViews > 0 ? +(totalComments / totalViews * 1000).toFixed(2) : 0;
+          const clipsWithComments = withIntent.filter(v => v.comments.tiktok > 0).length;
+
+          // Theme intent analysis
+          const classify = (title) => {
+            const t = title.toLowerCase();
+            if (['colombia','venezuel','salario','economía colombiana','migran','empresario','batalla cultural','reversa'].some(k=>t.includes(k))) return 'Colombia/Venezuela';
+            if (['ia','ai','grok','robot','duolingo','claude','productividad'].some(k=>t.includes(k))) return 'IA/Tech';
+            if (['bitcoin','solana','etf','crypto','staking','blockchain'].some(k=>t.includes(k))) return 'Crypto';
+            if (['inversión','invertir','portafolio','riesgo','primeros principios','mercado','wall street'].some(k=>t.includes(k))) return 'Inversión';
+            return 'Otro';
+          };
+          const themeIntent = {};
+          withIntent.forEach(v => {
+            const cat = classify(v.title);
+            if (!themeIntent[cat]) themeIntent[cat] = { clips: 0, cpmSum: 0, clSum: 0, comments: 0, views: 0 };
+            themeIntent[cat].clips++;
+            themeIntent[cat].cpmSum += v.cpm;
+            themeIntent[cat].clSum += v.clRatio;
+            themeIntent[cat].comments += v.comments.tiktok;
+            themeIntent[cat].views += v.views.tiktok;
+          });
+          const themeRows = Object.entries(themeIntent).map(([name, d]) => ({
+            name,
+            clips: d.clips,
+            avgCpm: +(d.cpmSum / d.clips).toFixed(2),
+            avgCl: +(d.clSum / d.clips * 100).toFixed(1),
+            totalComments: d.comments,
+          })).sort((a, b) => b.avgCpm - a.avgCpm);
+
+          // Intent buckets
+          const buckets = { '0': 0, '0-1': 0, '1-3': 0, '3+': 0 };
+          withIntent.filter(v => v.views.tiktok >= 100).forEach(v => {
+            if (v.cpm === 0) buckets['0']++;
+            else if (v.cpm < 1) buckets['0-1']++;
+            else if (v.cpm < 3) buckets['1-3']++;
+            else buckets['3+']++;
+          });
+          const bucketTotal = Object.values(buckets).reduce((a, b) => a + b, 0);
+
+          return (
+            <>
+              {/* KPI row */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+                {[
+                  { label: "TOTAL COMMENTS", value: fmt(totalComments), sub: "TikTok — proxy de intención", accent: "#60a5fa" },
+                  { label: "AVG C/1K VIEWS", value: avgCpm, sub: "benchmark industria: 1-3", accent: "#22c55e" },
+                  { label: "CLIPS CON INTENT", value: `${clipsWithComments}/${withIntent.length}`, sub: "clips que generaron acción", accent: "#f59e0b" },
+                  { label: "MEJOR INTENT", value: byCpm[0] ? byCpm[0].cpm + " C/1K" : "—", sub: (byCpm[0]?.title || "").slice(0,28) + "...", accent: "#a78bfa" },
+                ].map((s, i) => (
+                  <div key={i} style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 10, padding: 18 }}>
+                    <div style={{ fontSize: 9, color: "#4b5563", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{s.label}</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: s.accent, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 6 }}>{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Intent funnel + theme table */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+
+                {/* Intent distribution */}
+                <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24 }}>
+                  <h3 style={{ fontSize: 13, color: "#8a8f98", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>📊 Distribución de Intent Rate</h3>
+                  <div style={{ fontSize: 11, color: "#4b5563", marginBottom: 16 }}>comments por 1,000 views (TikTok)</div>
+                  {[
+                    { label: "Sin comments (0)", key: "0", color: "#374151" },
+                    { label: "Bajo (0–1 C/1K)", key: "0-1", color: "#f59e0b" },
+                    { label: "Medio (1–3 C/1K)", key: "1-3", color: "#22c55e" },
+                    { label: "Alto (3+ C/1K) 🎯", key: "3+", color: "#60a5fa" },
+                  ].map((b, i) => (
+                    <div key={i} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, color: "#e2e4e9" }}>{b.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: b.color, fontFamily: "'JetBrains Mono', monospace" }}>{buckets[b.key]} clips ({bucketTotal > 0 ? Math.round(buckets[b.key]/bucketTotal*100) : 0}%)</span>
+                      </div>
+                      <div style={{ height: 6, background: "#1a1d24", borderRadius: 3 }}>
+                        <div style={{ height: "100%", width: `${bucketTotal > 0 ? buckets[b.key]/bucketTotal*100 : 0}%`, background: b.color, borderRadius: 3, transition: "width 0.4s" }} />
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 16, padding: 12, background: "#0d0f14", borderRadius: 8, fontSize: 11, color: "#6b7280", lineHeight: 1.6 }}>
+                    Solo el {bucketTotal > 0 ? Math.round((buckets["1-3"]+buckets["3+"])/bucketTotal*100) : 0}% de tus clips genera intent real (1+ C/1K). Esos son los que hacen trabajar el flywheel hacia el episodio y Substack.
+                  </div>
+                </div>
+
+                {/* Theme intent */}
+                <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24 }}>
+                  <h3 style={{ fontSize: 13, color: "#8a8f98", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>🎯 Intent por Categoría</h3>
+                  <div style={{ fontSize: 11, color: "#4b5563", marginBottom: 16 }}>qué temas hacen que la gente quiera saber más</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 60px 60px", gap: 6, marginBottom: 8 }}>
+                    {["TEMA","AVG C/1K","CL%","CMTS"].map((h,i) => (
+                      <span key={i} style={{ fontSize: 9, color: "#4b5563", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", textAlign: i > 0 ? "right" : "left" }}>{h}</span>
+                    ))}
+                  </div>
+                  {themeRows.map((t, i) => {
+                    const color = t.avgCpm >= 1.5 ? "#22c55e" : t.avgCpm >= 0.5 ? "#f59e0b" : "#6b7280";
+                    return (
+                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 60px 60px", gap: 6, padding: "8px 0", borderBottom: i < themeRows.length - 1 ? "1px solid #1a1d24" : "none", alignItems: "center" }}>
+                        <span style={{ fontSize: 12, color: "#e2e4e9", fontWeight: 600 }}>{t.name} <span style={{ color: "#4b5563", fontWeight: 400 }}>({t.clips})</span></span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{t.avgCpm}</span>
+                        <span style={{ fontSize: 12, color: "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{t.avgCl}%</span>
+                        <span style={{ fontSize: 12, color: "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{t.totalComments}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Top clips by INTENT SCORE (views × C/1K) */}
+              <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24, marginBottom: 20 }}>
+                <h3 style={{ fontSize: 13, color: "#8a8f98", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>🚀 Top Clips por Intent Score</h3>
+                <div style={{ fontSize: 11, color: "#4b5563", marginBottom: 16 }}>views × (comments/1K) — los que más llevan al episodio. No es el que más views tiene, es el que más convierte.</div>
+                <div style={{ display: "grid", gridTemplateColumns: "24px 1fr 100px 80px 80px 90px", gap: 8, marginBottom: 10, padding: "0 0 8px", borderBottom: "1px solid #1a1d24" }}>
+                  {["#","TÍTULO","INTENT SCORE","TT VIEWS","C/1K","COMMENTS"].map((h, i) => (
+                    <span key={i} style={{ fontSize: 9, color: "#4b5563", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", textAlign: i > 1 ? "right" : "left" }}>{h}</span>
+                  ))}
+                </div>
+                {byIntent.slice(0, 10).map((v, i) => {
+                  const scoreColor = v.intentScore > 50000 ? "#22c55e" : v.intentScore > 10000 ? "#f59e0b" : "#8a8f98";
+                  return (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "24px 1fr 100px 80px 80px 90px", gap: 8, padding: "10px 0", borderBottom: i < 9 ? "1px solid #1a1d24" : "none", alignItems: "center" }}>
+                      <span style={{ fontSize: 12, color: "#4b5563", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>#{i+1}</span>
+                      <div>
+                        <div style={{ fontSize: 12, color: "#e2e4e9", fontWeight: 600, lineHeight: 1.3 }}>{v.title.replace(/#\w+/g, "").trim().slice(0, 52)}</div>
+                        <div style={{ fontSize: 10, color: "#4b5563", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{v.date}</div>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: scoreColor, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(v.intentScore)}</span>
+                      <span style={{ fontSize: 12, color: "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(v.views.tiktok)}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: v.cpm >= 2 ? "#22c55e" : v.cpm >= 1 ? "#f59e0b" : "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{v.cpm}</span>
+                      <span style={{ fontSize: 12, color: "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{v.comments.tiktok}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Hidden gems — high C/1K but low views */}
+              <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24 }}>
+                <h3 style={{ fontSize: 13, color: "#8a8f98", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>💎 Hidden Gems — Alto Intent, Pocas Vistas</h3>
+                <div style={{ fontSize: 11, color: "#4b5563", marginBottom: 16 }}>el algoritmo no los distribuyó pero la gente que los vio quiso saber más. Candidatos para republicar con nuevo hook.</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px", gap: 8, marginBottom: 10, padding: "0 0 8px", borderBottom: "1px solid #1a1d24" }}>
+                  {["TÍTULO","TT VIEWS","C/1K"].map((h, i) => (
+                    <span key={i} style={{ fontSize: 9, color: "#4b5563", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", textAlign: i > 0 ? "right" : "left" }}>{h}</span>
+                  ))}
+                </div>
+                {byCpm.filter(v => v.views.tiktok < 3000 && v.cpm >= 1.5).slice(0, 6).map((v, i, arr) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px", gap: 8, padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid #1a1d24" : "none", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: "#e2e4e9", fontWeight: 600 }}>{v.title.replace(/#\w+/g, "").trim().slice(0, 55)}</div>
+                      <div style={{ fontSize: 10, color: "#4b5563", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{v.date}</div>
+                    </div>
+                    <span style={{ fontSize: 12, color: "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(v.views.tiktok)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#60a5fa", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{v.cpm}</span>
+                  </div>
+                ))}
               </div>
             </>
           );
