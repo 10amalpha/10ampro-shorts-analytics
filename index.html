@@ -328,7 +328,7 @@ function ShortsAnalytics() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 4, background: "#1a1d24", borderRadius: 8, padding: 3, border: "1px solid #2a2d35" }}>
-            {[["overview", "Overview"], ["rankings", "Rankings"], ["platforms", "Platforms"], ["strategy", "Strategy"], ["conversion", "Conversión"]].map(([key, label]) => (
+            {[["overview", "Overview"], ["rankings", "Rankings"], ["platforms", "Platforms"], ["strategy", "Strategy"], ["conversion", "Conversión"], ["patterns", "Patrones"]].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setView(key)}
@@ -924,6 +924,238 @@ function ShortsAnalytics() {
                     <span style={{ fontSize: 13, fontWeight: 700, color: "#60a5fa", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{v.cpm}</span>
                   </div>
                 ))}
+              </div>
+            </>
+          );
+        })()}
+
+        {/* ══════════ PATRONES ══════════ */}
+        {view === "patterns" && (() => {
+          const D = ACTIVE_DATA;
+
+          // ── Scatter data: each clip as a point (tt_views, cpm) ──
+          const scatter = D.filter(v => v.views.tiktok >= 100).map(v => {
+            const cpm = v.views.tiktok > 0 ? +(v.comments.tiktok / v.views.tiktok * 1000).toFixed(1) : 0;
+            const cat = (() => {
+              const t = v.title.toLowerCase();
+              if (['colombia','venezuel','salario','empresario','batalla','reversa','migran'].some(k=>t.includes(k))) return 'COL/VEN';
+              if (['ia','ai','grok','robot','duolingo','productividad'].some(k=>t.includes(k))) return 'IA/TECH';
+              if (['bitcoin','solana','etf','crypto','staking','blockchain'].some(k=>t.includes(k))) return 'CRYPTO';
+              if (['inversión','invertir','portafolio','riesgo','principios','mercado','wall street'].some(k=>t.includes(k))) return 'INV';
+              return 'OTRO';
+            })();
+            return { title: v.title.replace(/#\w+/g,'').trim().slice(0,30), views: v.views.tiktok, cpm, cat, date: v.date };
+          });
+
+          const catColors = { 'COL/VEN': '#22c55e', 'IA/TECH': '#60a5fa', 'CRYPTO': '#f59e0b', 'INV': '#a78bfa', 'OTRO': '#6b7280' };
+
+          // ── Scale for scatter ──
+          const maxViews = Math.max(...scatter.map(s=>s.views), 1);
+          const maxCpm   = Math.max(...scatter.map(s=>s.cpm), 0.1);
+          // log scale for views so dots don't all cluster left
+          const logScale = v => v > 0 ? Math.log10(v) / Math.log10(maxViews) : 0;
+
+          // ── DOW data ──
+          const dowOrder = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+          const dowMap = {};
+          D.forEach(v => {
+            const d = new Date(v.date + 'T12:00:00');
+            const dow = dowOrder[((d.getDay()+6)%7)];
+            if (!dowMap[dow]) dowMap[dow] = { views: [], cpm: [] };
+            dowMap[dow].views.push(v.views.tiktok);
+            const c = v.views.tiktok > 0 ? v.comments.tiktok/v.views.tiktok*1000 : 0;
+            dowMap[dow].cpm.push(c);
+          });
+          const dowRows = dowOrder.map(d => {
+            const data = dowMap[d] || { views: [], cpm: [] };
+            const avgV = data.views.length ? Math.round(data.views.reduce((a,b)=>a+b,0)/data.views.length) : 0;
+            const avgC = data.cpm.length ? +(data.cpm.reduce((a,b)=>a+b,0)/data.cpm.length).toFixed(1) : 0;
+            return { day: d, avgV, avgC, n: data.views.length };
+          });
+          const maxDowV = Math.max(...dowRows.map(r=>r.avgV), 1);
+
+          // ── Title pattern matrix ──
+          const patterns = [
+            { label: 'Números (#)', test: v => /\d/.test(v.title) },
+            { label: 'Pregunta (?)', test: v => v.title.includes('?') },
+            { label: 'Exclamación (!)', test: v => v.title.includes('!') },
+            { label: 'Título largo (>50)', test: v => v.title.length > 50 },
+            { label: 'Título corto (<25)', test: v => v.title.length < 25 },
+          ].map(p => {
+            const yes = D.filter(p.test);
+            const no  = D.filter(v => !p.test(v));
+            const avgYesV = yes.length ? Math.round(yes.reduce((a,v)=>a+v.views.tiktok,0)/yes.length) : 0;
+            const avgNoV  = no.length  ? Math.round(no.reduce((a,v)=>a+v.views.tiktok,0)/no.length)   : 0;
+            const avgYesC = yes.length ? +(yes.reduce((a,v)=>a+(v.views.tiktok>0?v.comments.tiktok/v.views.tiktok*1000:0),0)/yes.length).toFixed(1) : 0;
+            const avgNoC  = no.length  ? +(no.reduce((a,v)=>a+(v.views.tiktok>0?v.comments.tiktok/v.views.tiktok*1000:0),0)/no.length).toFixed(1)   : 0;
+            return { label: p.label, n: yes.length, avgYesV, avgNoV, avgYesC, avgNoC, lift: avgNoV > 0 ? (avgYesV/avgNoV) : 1 };
+          });
+
+          return (
+            <>
+              {/* ── SCATTER: views vs C/1K ── */}
+              <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24, marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e4e9", textTransform: "uppercase", letterSpacing: "0.06em" }}>Alcance vs Conversación</div>
+                    <div style={{ fontSize: 11, color: "#4b5563", marginTop: 3 }}>cada punto = un clip · eje X = vistas TikTok (log) · eje Y = comments/1K</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {Object.entries(catColors).map(([cat, col]) => (
+                      <span key={cat} style={{ fontSize: 10, color: col, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: col, display: "inline-block" }} />{cat}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4-quadrant labels */}
+                <div style={{ position: "relative", height: 340, border: "1px solid #1a1d24", borderRadius: 8, overflow: "hidden", background: "#0d0f14" }}>
+                  {/* Quadrant backgrounds */}
+                  <div style={{ position:"absolute", left:0, top:0, width:"50%", height:"50%", background:"#ef444408", borderRight:"1px dashed #1f2937", borderBottom:"1px dashed #1f2937" }} />
+                  <div style={{ position:"absolute", right:0, top:0, width:"50%", height:"50%", background:"#22c55e08", borderBottom:"1px dashed #1f2937" }} />
+                  <div style={{ position:"absolute", left:0, bottom:0, width:"50%", height:"50%", background:"#f59e0b05" }} />
+                  <div style={{ position:"absolute", right:0, bottom:0, width:"50%", height:"50%", background:"#60a5fa05" }} />
+
+                  {/* Quadrant labels */}
+                  <span style={{ position:"absolute", left:8, top:8, fontSize:9, color:"#374151", fontFamily:"'JetBrains Mono',monospace", fontWeight:700 }}>POCAS VISTAS / ALTO INTENT → republicar</span>
+                  <span style={{ position:"absolute", right:8, top:8, fontSize:9, color:"#22c55e", fontFamily:"'JetBrains Mono',monospace", fontWeight:700, textAlign:"right" }}>MUCHAS VISTAS / ALTO INTENT ← objetivo</span>
+                  <span style={{ position:"absolute", left:8, bottom:8, fontSize:9, color:"#4b5563", fontFamily:"'JetBrains Mono',monospace", fontWeight:700 }}>POCAS VISTAS / BAJO INTENT → skip</span>
+                  <span style={{ position:"absolute", right:8, bottom:8, fontSize:9, color:"#60a5fa", fontFamily:"'JetBrains Mono',monospace", fontWeight:700, textAlign:"right" }}>MUCHAS VISTAS / BAJO INTENT → add CTA</span>
+
+                  {/* Y axis */}
+                  {[0,1,2,3,4,5,6].map(v => (
+                    <div key={v} style={{ position:"absolute", left:0, bottom: `${v/6*100}%`, width:"100%", borderTop: v>0?"1px solid #1a1d2420":"none" }}>
+                      <span style={{ position:"absolute", left:4, top:-8, fontSize:8, color:"#374151", fontFamily:"'JetBrains Mono',monospace" }}>{v}</span>
+                    </div>
+                  ))}
+
+                  {/* Dots */}
+                  {scatter.map((s, i) => {
+                    const x = logScale(s.views) * 92 + 4; // % from left
+                    const y = 100 - (Math.min(s.cpm, 6) / 6 * 92 + 4); // % from top
+                    const col = catColors[s.cat];
+                    const r = Math.max(4, Math.min(10, s.views / maxViews * 20 + 4));
+                    return (
+                      <div key={i} title={`${s.title}\n${s.views.toLocaleString()} views · ${s.cpm} C/1K`}
+                        style={{
+                          position: "absolute",
+                          left: `${x}%`, top: `${y}%`,
+                          width: r, height: r,
+                          borderRadius: "50%",
+                          background: col,
+                          opacity: 0.82,
+                          transform: "translate(-50%,-50%)",
+                          cursor: "default",
+                          transition: "opacity 0.2s",
+                          boxShadow: s.views > 5000 ? `0 0 6px ${col}80` : "none",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 10, color: "#4b5563", marginTop: 8, textAlign: "center" }}>← pocas vistas · · · · · muchas vistas →  (escala logarítmica)</div>
+              </div>
+
+              {/* ── DOW heatmap + Title patterns side by side ── */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+
+                {/* Day of week */}
+                <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e4e9", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Día de publicación</div>
+                  <div style={{ fontSize: 11, color: "#4b5563", marginBottom: 16 }}>promedio vistas TT · promedio C/1K</div>
+                  {dowRows.map((r, i) => (
+                    <div key={i} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, alignItems: "center" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e4e9", fontFamily: "'JetBrains Mono',monospace", width: 36 }}>{r.day}</span>
+                        <span style={{ fontSize: 10, color: "#4b5563" }}>n={r.n}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: r.avgV > 5000 ? "#22c55e" : r.avgV > 2000 ? "#f59e0b" : "#6b7280", fontFamily: "'JetBrains Mono',monospace", textAlign:"right", width: 70 }}>{r.avgV.toLocaleString()}</span>
+                        <span style={{ fontSize: 11, color: r.avgC >= 1.5 ? "#22c55e" : r.avgC >= 0.8 ? "#f59e0b" : "#6b7280", fontFamily: "'JetBrains Mono',monospace", textAlign:"right", width: 55 }}>{r.avgC} C/K</span>
+                      </div>
+                      <div style={{ height: 5, background: "#1a1d24", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${r.avgV/maxDowV*100}%`, background: r.avgV > 5000 ? "#22c55e" : r.avgV > 2000 ? "#f59e0b" : "#374151", borderRadius: 3, transition: "width 0.4s" }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Title pattern matrix */}
+                <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e4e9", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Patrones de título</div>
+                  <div style={{ fontSize: 11, color: "#4b5563", marginBottom: 16 }}>¿qué incluir (o no) en el título?</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 60px 60px 50px", gap: 6, marginBottom: 8 }}>
+                    {["PATRÓN","CON","SIN","LIFT"].map((h,i) => (
+                      <span key={i} style={{ fontSize: 9, color: "#4b5563", fontWeight:700, fontFamily:"'JetBrains Mono',monospace", textAlign: i>0?"right":"left" }}>{h}</span>
+                    ))}
+                  </div>
+                  {patterns.map((p, i) => {
+                    const liftCol = p.lift > 1.5 ? "#22c55e" : p.lift > 1.0 ? "#f59e0b" : "#ef4444";
+                    return (
+                      <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 50px", gap:6, padding:"8px 0", borderBottom: i<patterns.length-1?"1px solid #1a1d24":"none", alignItems:"center" }}>
+                        <span style={{ fontSize:12, color:"#e2e4e9" }}>{p.label} <span style={{ color:"#4b5563", fontSize:10 }}>({p.n})</span></span>
+                        <span style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", textAlign:"right", color:"#8a8f98" }}>{p.avgYesV.toLocaleString()}</span>
+                        <span style={{ fontSize:11, fontFamily:"'JetBrains Mono',monospace", textAlign:"right", color:"#8a8f98" }}>{p.avgNoV.toLocaleString()}</span>
+                        <span style={{ fontSize:12, fontWeight:700, fontFamily:"'JetBrains Mono',monospace", textAlign:"right", color:liftCol }}>{p.lift.toFixed(1)}×</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Theme scatter: avg views vs avg C/1K per category ── */}
+              <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e4e9", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Categorías — Alcance vs Intent</div>
+                <div style={{ fontSize: 11, color: "#4b5563", marginBottom: 20 }}>tamaño del círculo = número de clips producidos</div>
+                {(() => {
+                  const cats = {};
+                  D.forEach(v => {
+                    const t = v.title.toLowerCase();
+                    const cat = ['colombia','venezuel','salario','empresario','batalla','reversa','migran'].some(k=>t.includes(k)) ? 'COL/VEN'
+                              : ['ia','ai','grok','robot','duolingo','productividad'].some(k=>t.includes(k)) ? 'IA/TECH'
+                              : ['bitcoin','solana','etf','crypto','staking','blockchain'].some(k=>t.includes(k)) ? 'CRYPTO'
+                              : ['inversión','invertir','portafolio','riesgo','principios','mercado','wall street'].some(k=>t.includes(k)) ? 'INV'
+                              : 'OTRO';
+                    if (!cats[cat]) cats[cat] = { views: [], cpm: [] };
+                    cats[cat].views.push(v.views.tiktok);
+                    cats[cat].cpm.push(v.views.tiktok > 0 ? v.comments.tiktok/v.views.tiktok*1000 : 0);
+                  });
+                  const catData = Object.entries(cats).map(([name, d]) => ({
+                    name, n: d.views.length,
+                    avgV: Math.round(d.views.reduce((a,b)=>a+b,0)/d.views.length),
+                    avgC: +(d.cpm.reduce((a,b)=>a+b,0)/d.cpm.length).toFixed(2),
+                  }));
+                  const maxV = Math.max(...catData.map(c=>c.avgV), 1);
+                  const maxC = Math.max(...catData.map(c=>c.avgC), 0.1);
+
+                  return (
+                    <div style={{ position:"relative", height: 200, background:"#0d0f14", borderRadius:8, border:"1px solid #1a1d24" }}>
+                      {/* axis lines */}
+                      <div style={{ position:"absolute", left:"50%", top:0, bottom:0, borderLeft:"1px dashed #1f2937" }} />
+                      <div style={{ position:"absolute", top:"50%", left:0, right:0, borderTop:"1px dashed #1f2937" }} />
+                      <span style={{ position:"absolute", left:4, top:4, fontSize:9, color:"#374151", fontFamily:"'JetBrains Mono',monospace" }}>↑ alto intent</span>
+                      <span style={{ position:"absolute", right:4, bottom:4, fontSize:9, color:"#374151", fontFamily:"'JetBrains Mono',monospace" }}>muchas vistas →</span>
+                      {catData.map((c, i) => {
+                        const x = c.avgV / maxV * 88 + 6;
+                        const y = 100 - (c.avgC / maxC * 88 + 6);
+                        const r = Math.max(18, Math.min(40, c.n * 6));
+                        const col = catColors[c.name] || "#6b7280";
+                        return (
+                          <div key={i} style={{
+                            position:"absolute", left:`${x}%`, top:`${y}%`,
+                            width:r, height:r, borderRadius:"50%",
+                            background:`${col}30`, border:`2px solid ${col}`,
+                            transform:"translate(-50%,-50%)",
+                            display:"flex", alignItems:"center", justifyContent:"center",
+                            flexDirection:"column",
+                          }}>
+                            <span style={{ fontSize:9, fontWeight:700, color:col, fontFamily:"'JetBrains Mono',monospace", lineHeight:1.2 }}>{c.name}</span>
+                            <span style={{ fontSize:8, color:`${col}aa`, fontFamily:"'JetBrains Mono',monospace" }}>n={c.n}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </>
           );
