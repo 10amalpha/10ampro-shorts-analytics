@@ -201,24 +201,24 @@ function ShortsAnalytics() {
 
   const analytics = useMemo(() => {
     const data = SAMPLE_DATA;
-    const totalViews = data.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.views[p], 0), 0);
-    const totalLikes = data.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.likes[p], 0), 0);
-    const totalComments = data.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.comments[p], 0), 0);
-    const totalShares = data.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.shares[p], 0), 0);
+    const totalViews = SAMPLE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.views[p], 0), 0);
+    const totalLikes = SAMPLE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.likes[p], 0), 0);
+    const totalComments = SAMPLE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.comments[p], 0), 0);
+    const totalShares = SAMPLE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.shares[p], 0), 0);
     const avgEngRate = totalViews > 0 ? (totalLikes + totalComments + totalShares) / totalViews : 0;
 
     const platformTotals = {};
     PLATFORMS.forEach(p => {
       platformTotals[p] = {
-        views: data.reduce((s, d) => s + d.views[p], 0),
-        likes: data.reduce((s, d) => s + d.likes[p], 0),
-        comments: data.reduce((s, d) => s + d.comments[p], 0),
-        shares: data.reduce((s, d) => s + d.shares[p], 0),
+        views: SAMPLE_DATA.reduce((s, d) => s + d.views[p], 0),
+        likes: SAMPLE_DATA.reduce((s, d) => s + d.likes[p], 0),
+        comments: SAMPLE_DATA.reduce((s, d) => s + d.comments[p], 0),
+        shares: SAMPLE_DATA.reduce((s, d) => s + d.shares[p], 0),
       };
     });
 
     // Sort data
-    const sorted = [...data].sort((a, b) => {
+    const sorted = [...SAMPLE_DATA].sort((a, b) => {
       const aTotal = selectedPlatform === "all"
         ? PLATFORMS.reduce((s, p) => s + a[sortBy][p], 0)
         : a[sortBy][selectedPlatform] || 0;
@@ -229,23 +229,23 @@ function ShortsAnalytics() {
     });
 
     // Top performers
-    const topByViews = [...data].sort((a, b) =>
+    const topByViews = [...SAMPLE_DATA].sort((a, b) =>
       PLATFORMS.reduce((s, p) => s + b.views[p], 0) - PLATFORMS.reduce((s, p) => s + a.views[p], 0)
     ).slice(0, 5);
 
-    const topByEngagement = [...data].sort((a, b) => {
+    const topByEngagement = [...SAMPLE_DATA].sort((a, b) => {
       const aEng = PLATFORMS.reduce((s, p) => s + a.likes[p] + a.comments[p] + a.shares[p], 0) / Math.max(PLATFORMS.reduce((s, p) => s + a.views[p], 0), 1);
       const bEng = PLATFORMS.reduce((s, p) => s + b.likes[p] + b.comments[p] + b.shares[p], 0) / Math.max(PLATFORMS.reduce((s, p) => s + b.views[p], 0), 1);
       return bEng - aEng;
     }).slice(0, 5);
 
-    const topByComments = [...data].sort((a, b) =>
+    const topByComments = [...SAMPLE_DATA].sort((a, b) =>
       PLATFORMS.reduce((s, p) => s + b.comments[p], 0) - PLATFORMS.reduce((s, p) => s + a.comments[p], 0)
     ).slice(0, 5);
 
     // Weekly breakdown
     const weeks = {};
-    data.forEach(d => {
+    SAMPLE_DATA.forEach(d => {
       const dt = new Date(d.date);
       const weekStart = new Date(dt);
       weekStart.setDate(dt.getDate() - dt.getDay());
@@ -493,9 +493,9 @@ function ShortsAnalytics() {
         {view === "strategy" && (() => {
           // ── Real computed stats from actual SAMPLE_DATA ──
           const totalViews = analytics.totalViews;
-          const ttShare = Math.round(data.reduce((a,v)=>a+v.views.tiktok,0) / totalViews * 100);
-          const xShare  = Math.round(data.reduce((a,v)=>a+v.views.x,0) / totalViews * 100);
-          const ytShare = Math.round(data.reduce((a,v)=>a+v.views.yt,0) / totalViews * 100);
+          const ttShare = Math.round(SAMPLE_DATA.reduce((a,v)=>a+v.views.tiktok,0) / totalViews * 100);
+          const xShare  = Math.round(SAMPLE_DATA.reduce((a,v)=>a+v.views.x,0) / totalViews * 100);
+          const ytShare = Math.round(SAMPLE_DATA.reduce((a,v)=>a+v.views.yt,0) / totalViews * 100);
 
           // Theme classification
           const classify = (title) => {
@@ -508,7 +508,7 @@ function ShortsAnalytics() {
           };
 
           const themes = {};
-          data.forEach(v => {
+          SAMPLE_DATA.forEach(v => {
             const cat = classify(v.title);
             if (!themes[cat]) themes[cat] = [];
             themes[cat].push(v);
@@ -521,18 +521,18 @@ function ShortsAnalytics() {
           }).sort((a,b) => b.avgTT - a.avgTT);
 
           // X outperformers (X beats TikTok)
-          const xWins = data.filter(v => v.views.x > v.views.tiktok && v.views.x > 500)
+          const xWins = SAMPLE_DATA.filter(v => v.views.x > v.views.tiktok && v.views.x > 500)
             .sort((a,b) => (b.views.x - b.views.tiktok) - (a.views.x - a.views.tiktok)).slice(0,3);
 
           // YT outperformers
-          const ytWins = data.filter(v => v.views.yt > v.views.tiktok && v.views.yt > 400)
+          const ytWins = SAMPLE_DATA.filter(v => v.views.yt > v.views.tiktok && v.views.yt > 400)
             .sort((a,b) => (b.views.yt - b.views.tiktok) - (a.views.yt - a.views.tiktok)).slice(0,3);
 
           // Top 3 all-time
-          const top3 = [...data].sort((a,b) => (b.views.tiktok+b.views.yt+b.views.x)-(a.views.tiktok+a.views.yt+a.views.x)).slice(0,3);
+          const top3 = [...SAMPLE_DATA].sort((a,b) => (b.views.tiktok+b.views.yt+b.views.x)-(a.views.tiktok+a.views.yt+a.views.x)).slice(0,3);
 
           // Engagement leaders (TikTok, min 500 views)
-          const engLeaders = data.filter(v=>v.views.tiktok>500).map(v=>({...v, engRate: (v.likes.tiktok+v.comments.tiktok)/v.views.tiktok*100})).sort((a,b)=>b.engRate-a.engRate).slice(0,3);
+          const engLeaders = SAMPLE_DATA.filter(v=>v.views.tiktok>500).map(v=>({...v, engRate: (v.likes.tiktok+v.comments.tiktok)/v.views.tiktok*100})).sort((a,b)=>b.engRate-a.engRate).slice(0,3);
 
           const colVenTheme = themeStats.find(t=>t.name==='Colombia / Venezuela Economía');
           const aiTheme     = themeStats.find(t=>t.name==='IA & Futuro del Trabajo');
