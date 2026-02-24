@@ -283,7 +283,7 @@ function ShortsAnalytics() {
       weeks[key].count++;
     });
 
-    return { totalViews, totalLikes, totalComments, totalShares, avgEngRate, platformTotals, sorted, topByViews, topByEngagement, topByComments, weeks, count: data.length };
+    return { totalViews, totalLikes, totalComments, totalShares, avgEngRate, platformTotals, sorted, topByViews, topByEngagement, topByComments, weeks, count: ACTIVE_DATA.length };
   }, [sortBy, selectedPlatform, ACTIVE_DATA]);
 
   const maxWeekViews = Math.max(...Object.values(analytics.weeks).map(w => w.views));
