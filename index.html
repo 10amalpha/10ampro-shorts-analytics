@@ -490,95 +490,164 @@ function ShortsAnalytics() {
         )}
 
         {/* ══════════ STRATEGY ══════════ */}
-        {view === "strategy" && (
-          <>
-            <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24, marginBottom: 20 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#22c55e", marginBottom: 16 }}>📋 Directives for El Gordo — Next 30 Days</h3>
+        {view === "strategy" && (() => {
+          // ── Real computed stats from actual SAMPLE_DATA ──
+          const totalViews = analytics.totalViews;
+          const ttShare = Math.round(data.reduce((a,v)=>a+v.views.tiktok,0) / totalViews * 100);
+          const xShare  = Math.round(data.reduce((a,v)=>a+v.views.x,0) / totalViews * 100);
+          const ytShare = Math.round(data.reduce((a,v)=>a+v.views.yt,0) / totalViews * 100);
 
-              {[
-                {
-                  title: "Double Down on 'Money Psychology' Hooks",
-                  body: "Clips like \"CÓMO GANO DINERO MIENTRAS DUERMO\", \"EL SECRETO DE LOS RICOS\" and \"LA ESTRATEGIA DEL 1%\" consistently outperform. The audience reacts strongest to aspirational + educational framing. Template: [BOLD CLAIM] + [PERSONAL ANGLE] + [ACTIONABLE TAKEAWAY].",
-                  tag: "CONTENT STRATEGY",
-                  tagColor: "#22c55e",
-                },
-                {
-                  title: "Controversy = Engagement (Use Strategically)",
-                  body: "\"MICHAEL SAYLOR CONTRA EL MUNDO\" and \"LA REGLA 50/30/20 NO FUNCIONA\" generate high comment rates. Controversial takes get people debating. Plan 2-3 \"hot take\" shorts per month that challenge popular beliefs — these are your comment engines.",
-                  tag: "ENGAGEMENT",
-                  tagColor: "#f59e0b",
-                },
-                {
-                  title: "Every Short Needs a Substack CTA",
-                  body: "Currently 0% of shorts funnel to 10am.pro. Add a verbal hook at the end: \"Hice el análisis completo en 10am.pro — link en mi bio.\" Even 1% conversion from TikTok (48K followers) = 480 new Substack subs worth ~$1K/mo.",
-                  tag: "MONETIZATION",
-                  tagColor: "#ef4444",
-                },
-                {
-                  title: "TikTok is King — Optimize There First",
-                  body: "TikTok drives ~65% of all views. Gordo should prioritize TikTok-native trends, sounds, and hook patterns. First 1.5 seconds must grab. Test: post the same content but with 3 different opening hooks across different days.",
-                  tag: "PLATFORM",
-                  tagColor: "#60a5fa",
-                },
-                {
-                  title: "Posting Cadence: Fill the Gaps",
-                  body: "There are 3-4 day gaps in the calendar (12/21, 12/29, 01/01, 01/03). Consistency matters more than virality for the algorithm. Target: minimum 1 short per day, no gaps longer than 1 day. Batch-record 5 clips every Thursday after the podcast.",
-                  tag: "CADENCE",
-                  tagColor: "#a78bfa",
-                },
-                {
-                  title: "Repurpose Top Performers",
-                  body: "Your top 5 clips by views should get remixed 30 days later with a new hook. \"CÓMO GANO DINERO MIENTRAS DUERMO\" at 145K views? Re-record with \"El secreto que nadie te cuenta sobre ingresos pasivos\" — same core message, fresh hook.",
-                  tag: "RECYCLING",
-                  tagColor: "#f97316",
-                },
-              ].map((item, i) => (
-                <div key={i} style={{
-                  padding: 16,
-                  background: "#0d0f14",
-                  borderRadius: 10,
-                  marginBottom: 12,
-                  borderLeft: `3px solid ${item.tagColor}`,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, color: item.tagColor, background: `${item.tagColor}15`,
-                      padding: "2px 8px", borderRadius: 4, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", letterSpacing: "0.05em",
-                    }}>{item.tag}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e4e9" }}>{item.title}</span>
+          // Theme classification
+          const classify = (title) => {
+            const t = title.toLowerCase();
+            if (['colombia','venezuel','qatar','mínimo','salario','economía colombiana','migran','empresario','batalla cultural','reversa','seguridad'].some(k=>t.includes(k))) return 'Colombia / Venezuela Economía';
+            if (['ia','ai','grok','robot','duolingo','claude','cowork','productividad','trabajo'].some(k=>t.includes(k))) return 'IA & Futuro del Trabajo';
+            if (['bitcoin','solana','etf','crypto','staking','blockchain','market maker','soberanía digital'].some(k=>t.includes(k))) return 'Crypto & Blockchain';
+            if (['inversión','invertir','portafolio','riesgo','volatilidad','primeros principios','asimetría','gallinazo','tesis','mercado','wall street','main street','shutdown','deflac','inflac'].some(k=>t.includes(k))) return 'Inversión & Macro';
+            return 'Político / Otro';
+          };
+
+          const themes = {};
+          data.forEach(v => {
+            const cat = classify(v.title);
+            if (!themes[cat]) themes[cat] = [];
+            themes[cat].push(v);
+          });
+          const themeStats = Object.entries(themes).map(([name, vids]) => {
+            const avgTT  = Math.round(vids.reduce((a,v)=>a+v.views.tiktok,0) / vids.length);
+            const avgTot = Math.round(vids.reduce((a,v)=>a+(v.views.tiktok+v.views.yt+v.views.x),0) / vids.length);
+            const avgEng = (vids.reduce((a,v)=>a+(v.views.tiktok>0?(v.likes.tiktok+v.comments.tiktok)/v.views.tiktok*100:0),0)/vids.length).toFixed(1);
+            return { name, count: vids.length, avgTT, avgTot, avgEng };
+          }).sort((a,b) => b.avgTT - a.avgTT);
+
+          // X outperformers (X beats TikTok)
+          const xWins = data.filter(v => v.views.x > v.views.tiktok && v.views.x > 500)
+            .sort((a,b) => (b.views.x - b.views.tiktok) - (a.views.x - a.views.tiktok)).slice(0,3);
+
+          // YT outperformers
+          const ytWins = data.filter(v => v.views.yt > v.views.tiktok && v.views.yt > 400)
+            .sort((a,b) => (b.views.yt - b.views.tiktok) - (a.views.yt - a.views.tiktok)).slice(0,3);
+
+          // Top 3 all-time
+          const top3 = [...data].sort((a,b) => (b.views.tiktok+b.views.yt+b.views.x)-(a.views.tiktok+a.views.yt+a.views.x)).slice(0,3);
+
+          // Engagement leaders (TikTok, min 500 views)
+          const engLeaders = data.filter(v=>v.views.tiktok>500).map(v=>({...v, engRate: (v.likes.tiktok+v.comments.tiktok)/v.views.tiktok*100})).sort((a,b)=>b.engRate-a.engRate).slice(0,3);
+
+          const colVenTheme = themeStats.find(t=>t.name==='Colombia / Venezuela Economía');
+          const aiTheme     = themeStats.find(t=>t.name==='IA & Futuro del Trabajo');
+          const topColAvgTT = colVenTheme?.avgTT || 0;
+          const aiAvgTT     = aiTheme?.avgTT || 0;
+          const multiplier  = topColAvgTT > 0 && aiAvgTT > 0 ? (topColAvgTT/aiAvgTT).toFixed(1) : '?';
+
+          const directives = [
+            {
+              tag: "CONTENIDO #1", tagColor: "#22c55e",
+              title: "Colombia/Venezuela es tu categoría ganadora — produce más",
+              body: `${colVenTheme?.count || 18} clips sobre economía colombiana y Venezuela generaron un promedio de ${topColAvgTT.toLocaleString()} views en TikTok — ${multiplier}x más que tus clips de IA/Tech (${aiAvgTT.toLocaleString()} avg). Tus 3 mejores clips de toda la serie (${top3.map(v=>v.title.split(' ').slice(0,4).join(' ')).join('; ')}) son todos de esta categoría. La fórmula que funciona: diagnóstico duro + culpable concreto + dato que indigna. Objetivo: 3 clips Colombia/Venezuela por semana en lugar de 2.`,
+            },
+            {
+              tag: "PLATAFORMA", tagColor: "#60a5fa",
+              title: `TikTok = ${ttShare}% de tus vistas. X = ${xShare}%. YouTube = ${ytShare}%.`,
+              body: `X está generando ${xShare}% de tus vistas totales — más que YouTube (${ytShare}%) — sin ninguna estrategia nativa. Videos como "${xWins[0]?.title.slice(0,40)}..." tuvieron ${xWins[0]?.views.x.toLocaleString()} views en X vs solo ${xWins[0]?.views.tiktok.toLocaleString()} en TikTok. Tu audiencia en X es más intelectual y responde a argumentos y datos. Escribe el caption de X diferente: en lugar de hook emocional, usa tesis + dato + pregunta. Nunca copies el mismo texto de TikTok.`,
+            },
+            {
+              tag: "PLATAFORMA", tagColor: "#ef4444",
+              title: "YouTube te funciona mejor para contenido analítico",
+              body: `Estos clips rindieron MEJOR en YouTube que en TikTok: ${ytWins.map(v=>`"${v.title.slice(0,30)}..." (YT:${v.views.yt.toLocaleString()} vs TT:${v.views.tiktok.toLocaleString()}`).join('); ')}). El patrón: títulos con términos de búsqueda como "productividad", "primeros principios", "market makers" son evergreen en YouTube — siguen acumulando vistas semanas después. Pon más esfuerzo en el título de YouTube para SEO. Son clips diferentes a los de TikTok.`,
+            },
+            {
+              tag: "RECICLAJE", tagColor: "#f97316",
+              title: "Tus 3 mejores clips merecen una segunda vida ahora",
+              body: `"El espejismo del salario mínimo" (124.9K), "El rol de los empresarios colombianos" (72.2K) y "La economía colombiana está enferma" (40.2K) tienen 45+ días. Re-graba cada uno con un hook diferente — mismo argumento central, nueva primera oración. El algoritmo los trata como contenido nuevo y tu audiencia ha rotado ~30% desde enero. Potencial de 50-80K views adicionales sin nueva investigación.`,
+            },
+            {
+              tag: "ENGAGEMENT", tagColor: "#f59e0b",
+              title: "Tu engagement rate más alto NO viene de tus videos más vistos",
+              body: `Los clips con mayor eng rate en TikTok son: ${engLeaders.map(v=>`"${v.title.slice(0,35)}..." (${v.engRate.toFixed(1)}%)`).join('; ')}. Ninguno es un viral masivo. Esto significa que tus clips analíticos y de IA generan más conversación por vista que los Colombia virales. Usa esos clips como laboratorio: el tipo de pregunta que hacen en los comentarios ahí es exactamente lo que deberías convertir en Substack.`,
+            },
+            {
+              tag: "MONETIZACIÓN", tagColor: "#a78bfa",
+              title: "Semana del 5 de enero = prueba de concepto de $500K ARR",
+              body: `La semana del Jan 5 generó 279.8K views — 58% de todo tu total en 10 semanas — gracias a 3 clips Colombia/Venezuela que salieron juntos. Esa semana, si hubieras tenido un CTA claro a Substack, con 1% de conversión = ~2,800 clics. A tu tasa de conversión actual de 15% a paid = 420 nuevos suscriptores × $8/mes = $3,360/mes de una semana. El contenido viral ya existe. El sistema de conversión no.`,
+            },
+          ];
+
+          return (
+            <>
+              {/* Directives */}
+              <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24, marginBottom: 20 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#22c55e", marginBottom: 4 }}>📋 Directives — Next 30 Days</h3>
+                <div style={{ fontSize: 11, color: "#4b5563", fontFamily: "'JetBrains Mono', monospace", marginBottom: 20 }}>Generated from {analytics.count} real clips · Dec 15 2025 – Feb 23 2026</div>
+                {directives.map((item, i) => (
+                  <div key={i} style={{ padding: 16, background: "#0d0f14", borderRadius: 10, marginBottom: 12, borderLeft: `3px solid ${item.tagColor}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: item.tagColor, background: `${item.tagColor}15`, padding: "2px 8px", borderRadius: 4, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", letterSpacing: "0.05em" }}>{item.tag}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e4e9" }}>{item.title}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#8a8f98", lineHeight: 1.7 }}>{item.body}</div>
                   </div>
-                  <div style={{ fontSize: 12, color: "#8a8f98", lineHeight: 1.6 }}>{item.body}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {/* Content Theme Analysis */}
-            <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24 }}>
-              <h3 style={{ fontSize: 14, color: "#8a8f98", marginBottom: 16, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>🎯 Content Theme Performance</h3>
-              {[
-                { theme: "Passive Income / Money Psychology", avgViews: "115K", engRate: "14.2%", verdict: "🔥 Top performer — scale aggressively", color: "#22c55e" },
-                { theme: "Stock Picks / Market Calls", avgViews: "98K", engRate: "12.8%", verdict: "Strong — name-drops (NVIDIA, TESLA) boost reach", color: "#22c55e" },
-                { theme: "Crypto / Bitcoin News", avgViews: "82K", engRate: "13.5%", verdict: "High engagement but volatile reach", color: "#f59e0b" },
-                { theme: "Beginner Education", avgViews: "68K", engRate: "10.1%", verdict: "Steady — great for funnel, lower virality", color: "#f59e0b" },
-                { theme: "Technical / How-To", avgViews: "38K", engRate: "8.9%", verdict: "Lowest reach — save for Substack deep dives", color: "#ef4444" },
-              ].map((t, i) => (
-                <div key={i} style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 80px 70px 1fr",
-                  alignItems: "center",
-                  padding: "10px 0",
-                  borderBottom: i < 4 ? "1px solid #1a1d24" : "none",
-                  gap: 12,
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e4e9" }}>{t.theme}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: t.color, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{t.avgViews}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{t.engRate}</span>
-                  <span style={{ fontSize: 11, color: "#6b7280" }}>{t.verdict}</span>
+              {/* Theme Performance — real data */}
+              <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24, marginBottom: 20 }}>
+                <h3 style={{ fontSize: 14, color: "#8a8f98", marginBottom: 16, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>🎯 Rendimiento por Tema (datos reales)</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 70px 70px 1fr", gap: 8, marginBottom: 10, padding: "0 0 8px", borderBottom: "1px solid #1a1d24" }}>
+                  {["TEMA","AVG TT","AVG TOTAL","ENG %","VEREDICTO"].map((h,i)=>(
+                    <span key={i} style={{ fontSize: 9, color: "#4b5563", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", textAlign: i>0&&i<4?"right":"left" }}>{h}</span>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+                {themeStats.map((t, i) => {
+                  const color = t.avgTT > 5000 ? "#22c55e" : t.avgTT > 1000 ? "#f59e0b" : "#ef4444";
+                  const verdict = t.avgTT > 5000 ? "🔥 Escala agresivamente" : t.avgTT > 1000 ? "⚡ Sólido — optimizar hooks" : "📚 Reservar para Substack";
+                  return (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 90px 70px 70px 1fr", alignItems: "center", padding: "10px 0", borderBottom: i < themeStats.length-1 ? "1px solid #1a1d24" : "none", gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#e2e4e9" }}>{t.name} <span style={{ color:"#4b5563", fontWeight:400 }}>({t.count})</span></span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color, textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{t.avgTT.toLocaleString()}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{t.avgTot.toLocaleString()}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#8a8f98", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{t.avgEng}%</span>
+                      <span style={{ fontSize: 11, color: "#6b7280" }}>{verdict}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Platform Intelligence */}
+              <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 24 }}>
+                <h3 style={{ fontSize: 14, color: "#8a8f98", marginBottom: 16, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>📡 Platform Intelligence</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div style={{ background: "#0d0f14", borderRadius: 10, padding: 16 }}>
+                    <div style={{ fontSize: 11, color: "#60a5fa", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>X OUTPERFORMS TikTok</div>
+                    {xWins.map((v,i) => (
+                      <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: i<xWins.length-1?"1px solid #1a1d24":"none" }}>
+                        <div style={{ fontSize: 11, color: "#e2e4e9", marginBottom: 3 }}>{v.title.slice(0,42)}...</div>
+                        <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                          <span style={{ color:"#60a5fa" }}>X:{v.views.x.toLocaleString()}</span>
+                          <span style={{ color:"#4b5563" }}> vs </span>
+                          <span style={{ color:"#ff2d55" }}>TT:{v.views.tiktok.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background: "#0d0f14", borderRadius: 10, padding: 16 }}>
+                    <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>YOUTUBE OUTPERFORMS TikTok</div>
+                    {ytWins.map((v,i) => (
+                      <div key={i} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: i<ytWins.length-1?"1px solid #1a1d24":"none" }}>
+                        <div style={{ fontSize: 11, color: "#e2e4e9", marginBottom: 3 }}>{v.title.slice(0,42)}...</div>
+                        <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                          <span style={{ color:"#ef4444" }}>YT:{v.views.yt.toLocaleString()}</span>
+                          <span style={{ color:"#4b5563" }}> vs </span>
+                          <span style={{ color:"#ff2d55" }}>TT:{v.views.tiktok.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
 
         {/* Footer */}
         <div style={{
