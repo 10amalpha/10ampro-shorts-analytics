@@ -1,8 +1,5 @@
 {
   "name": "10ampro-shorts-analytics",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "build": "mkdir -p dist && cp index.html dist/index.html"
-  }
+  "version": "2.0.0",
+  "private": true
 }

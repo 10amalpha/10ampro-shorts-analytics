@@ -1,6 +1,1 @@
-node_modules
-.next
-out
-.env
-.env.local
-trigger redeploy
+node_modules/

@@ -104,6 +104,62 @@ const SAMPLE_DATA = [
   { id: 65, title: "Market Makers. ¿Qué son? ¿Cómo funcionan?", date: "2025-12-15", tiktok: "https://www.tiktok.com/@10ampro", yt: "", ig: "https://www.instagram.com/reel/DSS6XsqjfEd/", x: "https://x.com/10ampro/status/2000735849349005665", views: { tiktok: 366, yt: 398, ig: 2586, x: 948 }, likes: { tiktok: 18, yt: 0, ig: 56, x: 13 }, comments: { tiktok: 0, yt: 0, ig: 0, x: 0 }, shares: { tiktok: 0, yt: 0, ig: 8, x: 6 } },
 ];
 
+// ═══ AUTO-FETCH YOUTUBE DATA ═══
+// On page load, fetches fresh YT views/likes/comments via API and updates SAMPLE_DATA
+const YT_IDS = SAMPLE_DATA.filter(d => d.yt).map(d => {
+  const m = d.yt.match(/shorts\/([a-zA-Z0-9_-]+)/);
+  return m ? { id: d.id, date: d.date, vidId: m[1] } : null;
+}).filter(Boolean);
+
+const YT_ID_MAP = {}; // vidId -> [{id, date}]
+YT_IDS.forEach(item => {
+  if (!YT_ID_MAP[item.vidId]) YT_ID_MAP[item.vidId] = [];
+  YT_ID_MAP[item.vidId].push({ id: item.id, date: item.date });
+});
+
+(async function autoFetchYT() {
+  try {
+    const allVidIds = Object.keys(YT_ID_MAP).join(",");
+    if (!allVidIds) return;
+    
+    // Split into batches of 50 (YT API limit)
+    const chunks = [];
+    const ids = Object.keys(YT_ID_MAP);
+    for (let i = 0; i < ids.length; i += 50) {
+      chunks.push(ids.slice(i, i + 50).join(","));
+    }
+    
+    for (const chunk of chunks) {
+      const resp = await fetch(`/api/fetch-yt?ids=${chunk}`);
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      
+      if (json.data) {
+        Object.entries(json.data).forEach(([vidId, stats]) => {
+          const entries = YT_ID_MAP[vidId] || [];
+          entries.forEach(({ id, date }) => {
+            const clip = SAMPLE_DATA.find(d => d.id === id && d.date === date);
+            if (clip && stats.views > 0) {
+              clip.views.yt = stats.views;
+              clip.likes.yt = stats.likes;
+              clip.comments.yt = stats.comments;
+            }
+          });
+        });
+      }
+    }
+    
+    console.log("[10AMPRO] YouTube data auto-updated via API");
+    // Trigger React re-render by dispatching event
+    window.dispatchEvent(new Event("yt-data-updated"));
+  } catch (e) {
+    console.warn("[10AMPRO] YT auto-fetch failed (using cached data):", e.message);
+  }
+})();
+
+
+
+
 const fmt = (n) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
   if (n >= 1000) return (n / 1000).toFixed(1) + "K";
@@ -224,6 +280,14 @@ function ShortsAnalytics() {
   const [sortBy, setSortBy] = useState("views");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [periodIdx, setPeriodIdx] = useState(0);
+  const [ytRefresh, setYtRefresh] = useState(0);
+
+  // Listen for YouTube data auto-update
+  React.useEffect(() => {
+    const handler = () => setYtRefresh(r => r + 1);
+    window.addEventListener("yt-data-updated", handler);
+    return () => window.removeEventListener("yt-data-updated", handler);
+  }, []);
   const [hovDot, setHovDot] = useState(null);
 
   const ACTIVE_DATA = useMemo(() => {

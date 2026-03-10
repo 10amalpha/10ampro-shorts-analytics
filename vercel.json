@@ -1,4 +1,16 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "functions": {
+    "api/fetch-yt.js": {
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/fetch-yt?ids=warmup",
+      "schedule": "0 12 * * *"
+    }
+  ]
 }
