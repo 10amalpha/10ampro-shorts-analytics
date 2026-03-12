@@ -355,7 +355,8 @@ function ContentRow({ item, rank, isTop }) {
 }
 
 // All time periods derived from data
-const ALL_PERIODS = (() => {
+function computePeriods() {
+  if (!SAMPLE_DATA.length) return [{ label: "All Time", start: "2025-01-01", end: "2026-12-31" }];
   const dates = SAMPLE_DATA.map(d => d.date).sort();
   const first = dates[0], last = dates[dates.length - 1];
   const periods = [{ label: "All Time", start: first, end: last }];
@@ -372,7 +373,7 @@ const ALL_PERIODS = (() => {
     periods.push({ label: monthName, start, end });
   });
   return periods;
-})();
+}
 
 function ShortsAnalytics() {
   const [view, setView] = useState("overview");
@@ -381,7 +382,7 @@ function ShortsAnalytics() {
   const [periodIdx, setPeriodIdx] = useState(0);
   const [ytRefresh, setYtRefresh] = useState(0);
 
-  // Listen for YouTube data auto-update
+  // Listen for data updates (YT, IG, GSheet)
   React.useEffect(() => {
     const handler = () => setYtRefresh(r => r + 1);
     window.addEventListener("yt-data-updated", handler);
@@ -389,10 +390,12 @@ function ShortsAnalytics() {
   }, []);
   const [hovDot, setHovDot] = useState(null);
 
+  const ALL_PERIODS = useMemo(() => computePeriods(), [ytRefresh]);
+
   const ACTIVE_DATA = useMemo(() => {
-    const p = ALL_PERIODS[periodIdx];
+    const p = ALL_PERIODS[periodIdx] || ALL_PERIODS[0];
     return SAMPLE_DATA.filter(d => d.date >= p.start && d.date <= p.end);
-  }, [periodIdx]);
+  }, [periodIdx, ytRefresh, ALL_PERIODS]);
 
   const analytics = useMemo(() => {
     const totalViews = ACTIVE_DATA.reduce((s, d) => s + PLATFORMS.reduce((ps, p) => ps + d.views[p], 0), 0);
@@ -453,7 +456,7 @@ function ShortsAnalytics() {
     });
 
     return { totalViews, totalLikes, totalComments, totalShares, avgEngRate, platformTotals, sorted, topByViews, topByEngagement, topByComments, weeks, count: ACTIVE_DATA.length };
-  }, [sortBy, selectedPlatform, ACTIVE_DATA]);
+  }, [sortBy, selectedPlatform, ACTIVE_DATA, ytRefresh]);
 
   const maxWeekViews = Math.max(...Object.values(analytics.weeks).map(w => w.views));
 

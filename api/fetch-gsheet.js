@@ -53,13 +53,16 @@ export default async function handler(req, res) {
 
     const clips = [];
     let lastTitle = "";
+    let lastDate = null;
 
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCSVLine(lines[i]);
       const title = cols[0] || lastTitle || "";
       if (cols[0]) lastTitle = cols[0];
 
-      const date = parseDate(cols[1]);
+      const date = parseDate(cols[1]) || lastDate;
+      if (parseDate(cols[1])) lastDate = date;
+      
       const yt = cleanURL(cols[2] || "");
       const x = cleanURL(cols[3] || "");
       const ig = extractIGPermalink(cols[4] || "");
