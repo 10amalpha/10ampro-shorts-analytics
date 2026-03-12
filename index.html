@@ -252,8 +252,11 @@ async function autoFetchIG() {
   await syncGoogleSheet();
   await autoFetchYT();
   await autoFetchIG();
-  window.dispatchEvent(new Event("yt-data-updated"));
-  console.log(`[10AMPRO] All data loaded: ${SAMPLE_DATA.length} clips`);
+  // Dispatch with delay to ensure React component has mounted and listener is registered
+  setTimeout(() => {
+    window.dispatchEvent(new Event("yt-data-updated"));
+    console.log(`[10AMPRO] All data loaded: ${SAMPLE_DATA.length} clips`);
+  }, 100);
 })();
 
 
