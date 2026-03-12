@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
   try {
     // Step 1: Get Page Access Token from User Token
-    const pageTokenUrl = `https://graph.facebook.com/v25.0/${FB_PAGE_ID}?fields=access_token&access_token=${IG_ACCESS_TOKEN}`;
+    const pageTokenUrl = `https://graph.facebook.com/v22.0/${FB_PAGE_ID}?fields=access_token&access_token=${IG_ACCESS_TOKEN}`;
     const pageTokenResp = await fetch(pageTokenUrl);
     
     if (!pageTokenResp.ok) {
@@ -37,7 +37,8 @@ export default async function handler(req, res) {
     }
 
     // Step 2: Get all media (reels) from the IG account using page token
-    const mediaUrl = `https://graph.facebook.com/v25.0/${IG_USER_ID}/media?fields=id,caption,timestamp,media_type,permalink,like_count,comments_count&limit=100&access_token=${pageToken}`;
+    // Use v22.0+ which supports the new "views" metric (plays was deprecated April 2025)
+    const mediaUrl = `https://graph.facebook.com/v22.0/${IG_USER_ID}/media?fields=id,caption,timestamp,media_type,permalink,like_count,comments_count&limit=100&access_token=${pageToken}`;
     
     const mediaResp = await fetch(mediaUrl);
     if (!mediaResp.ok) {
@@ -48,6 +49,7 @@ export default async function handler(req, res) {
     const mediaData = await mediaResp.json();
     
     // Step 3: For each reel, get insights (views, shares, saves)
+    // Using v22.0 metrics: "views" replaces deprecated "plays"
     const results = [];
     
     for (const item of (mediaData.data || [])) {
@@ -56,12 +58,13 @@ export default async function handler(req, res) {
       let views = 0, shares = 0, saves = 0;
       
       try {
-        const insightsUrl = `https://graph.facebook.com/v25.0/${item.id}/insights?metric=plays,shares,saved&access_token=${pageToken}`;
+        // Try new v22+ "views" metric first
+        const insightsUrl = `https://graph.facebook.com/v22.0/${item.id}/insights?metric=views,shares,saved&access_token=${pageToken}`;
         const insResp = await fetch(insightsUrl);
         if (insResp.ok) {
           const insData = await insResp.json();
           for (const metric of (insData.data || [])) {
-            if (metric.name === "plays" || metric.name === "views") {
+            if (metric.name === "views") {
               views = metric.values?.[0]?.value || 0;
             }
             if (metric.name === "shares") {
@@ -69,6 +72,20 @@ export default async function handler(req, res) {
             }
             if (metric.name === "saved") {
               saves = metric.values?.[0]?.value || 0;
+            }
+          }
+        }
+        
+        // Fallback: if views still 0, try ig_reels_aggregated_all_plays_count
+        if (views === 0) {
+          const fallbackUrl = `https://graph.facebook.com/v22.0/${item.id}/insights?metric=ig_reels_aggregated_all_plays_count&access_token=${pageToken}`;
+          const fbResp = await fetch(fallbackUrl);
+          if (fbResp.ok) {
+            const fbData = await fbResp.json();
+            for (const metric of (fbData.data || [])) {
+              if (metric.values?.[0]?.value > 0) {
+                views = metric.values[0].value;
+              }
             }
           }
         }
