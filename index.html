@@ -157,6 +157,40 @@ YT_IDS.forEach(item => {
   }
 })();
 
+// ═══ AUTO-FETCH INSTAGRAM DATA ═══
+(async function autoFetchIG() {
+  try {
+    const resp = await fetch("/api/fetch-ig");
+    if (!resp.ok) return;
+    const json = await resp.json();
+    if (!json.data) return;
+    const igMap = {};
+    json.data.forEach(item => {
+      if (!item.permalink) return;
+      const m = item.permalink.match(/\/reel\/([A-Za-z0-9_-]+)/);
+      if (m) igMap[m[1]] = item;
+    });
+    let matched = 0;
+    SAMPLE_DATA.forEach(clip => {
+      if (!clip.ig) return;
+      const m = clip.ig.match(/\/reel\/([A-Za-z0-9_-]+)/);
+      if (!m) return;
+      const d = igMap[m[1]];
+      if (d) {
+        if (d.likes > 0) clip.likes.ig = d.likes;
+        if (d.comments > 0) clip.comments.ig = d.comments;
+        if (d.views > 0) clip.views.ig = d.views;
+        if (d.shares > 0) clip.shares.ig = d.shares;
+        matched++;
+      }
+    });
+    console.log(`[10AMPRO] Instagram data updated via API (${matched} matched)`);
+    window.dispatchEvent(new Event("yt-data-updated"));
+  } catch (e) {
+    console.warn("[10AMPRO] IG auto-fetch failed (using cached data):", e.message);
+  }
+})();
+
 
 
 
