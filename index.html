@@ -126,6 +126,116 @@ async function loadClipsFromGSheet() {
 // Placeholder — will be populated on page load
 let SAMPLE_DATA = [];
 
+// ═══════════════════════════════════════════════════════════
+// CACHED TIKTOK & X DATA (verified from previous manual exports)
+// Keyed by IG permalink or "date|title" for clips without IG
+// Will be replaced when TikTok/X APIs become available
+// ═══════════════════════════════════════════════════════════
+const CACHED_TTX_DATA = {
+  "https://www.instagram.com/reel/DUQ1ijIjVHi/": { tv:815, tl:28, tc:0, ts:0, xv:1058, xl:15, xc:0, xs:1 },
+  "https://www.instagram.com/reel/DUTOldyjeTu/": { tv:1048, tl:20, tc:0, ts:0, xv:1003, xl:16, xc:0, xs:1 },
+  "https://www.instagram.com/reel/DUVxhuXDY0i/": { tv:1260, tl:51, tc:1, ts:0, xv:1206, xl:12, xc:0, xs:2 },
+  "2026-02-05|Duolingo tiene el secreto de l": { tv:734, tl:21, tc:0, ts:0, xv:701, xl:12, xc:0, xs:2 },
+  "https://www.instagram.com/reel/DUZUUb5DfDI/": { tv:475, tl:15, tc:0, ts:0, xv:1068, xl:16, xc:0, xs:1 },
+  "https://www.instagram.com/reel/DUbOolkDdRE/": { tv:1146, tl:43, tc:0, ts:0, xv:2652, xl:22, xc:1, xs:6 },
+  "https://www.instagram.com/reel/DUgFTqVDRe6/": { tv:684, tl:33, tc:1, ts:0, xv:1221, xl:22, xc:0, xs:3 },
+  "https://www.instagram.com/reel/DUipxe6jX67/": { tv:535, tl:21, tc:0, ts:0, xv:1127, xl:13, xc:0, xs:5 },
+  "https://www.instagram.com/reel/DUln09XDXOh/": { tv:342, tl:13, tc:0, ts:0, xv:5247, xl:81, xc:4, xs:11 },
+  "https://www.instagram.com/reel/DUoTAazjaqB/": { tv:689, tl:33, tc:0, ts:0, xv:1350, xl:15, xc:1, xs:5 },
+  "https://www.instagram.com/reel/DUqYAIxjdDx/": { tv:6638, tl:236, tc:4, ts:0, xv:2092, xl:36, xc:2, xs:5 },
+  "https://www.instagram.com/reel/DUvzf9mDdxP/": { tv:466, tl:21, tc:0, ts:0, xv:1159, xl:29, xc:0, xs:2 },
+  "https://www.instagram.com/reel/DUv0IE-Deok/": { tv:2783, tl:131, tc:3, ts:0, xv:1937, xl:17, xc:1, xs:2 },
+  "https://www.instagram.com/reel/DU3R2n3Dc7Y/": { tv:1290, tl:63, tc:3, ts:0, xv:2068, xl:14, xc:0, xs:1 },
+  "https://www.instagram.com/reel/DU6X2Ywjep0/": { tv:441, tl:22, tc:0, ts:0, xv:2323, xl:19, xc:0, xs:4 },
+  "https://www.instagram.com/reel/DU8aep2jaOP/": { tv:1423, tl:26, tc:2, ts:0, xv:2044, xl:27, xc:0, xs:8 },
+  "https://www.instagram.com/reel/DU9da9tDYJc/": { tv:858, tl:36, tc:0, ts:0, xv:1726, xl:20, xc:1, xs:3 },
+  "https://www.instagram.com/reel/DU_OUTYjcd2/": { tv:286, tl:6, tc:0, ts:0, xv:1014, xl:13, xc:1, xs:2 },
+  "https://www.instagram.com/reel/DVBmW9ijQVj/": { tv:0, tl:0, tc:0, ts:0, xv:752, xl:5, xc:0, xs:2 },
+  "https://www.instagram.com/reel/DVGznmDjY0r/": { tv:0, tl:0, tc:0, ts:0, xv:2449, xl:17, xc:0, xs:7 },
+  "https://www.instagram.com/reel/DVHrHdWjZBQ/": { tv:529, tl:15, tc:0, ts:0, xv:865, xl:15, xc:1, xs:5 },
+  "https://www.instagram.com/reel/DVJZuetjYhq/": { tv:24000, tl:850, tc:18, ts:0, xv:4205, xl:219, xc:13, xs:46 },
+  "https://www.instagram.com/reel/DVL2T8xjaMC/": { tv:8705, tl:197, tc:5, ts:0, xv:4103, xl:82, xc:2, xs:11 },
+  "https://www.instagram.com/reel/DVMz_XjjQiH/": { tv:1222, tl:17, tc:0, ts:0, xv:1267, xl:22, xc:0, xs:5 },
+  "2026-02-26|¡Be part of capital, never lab": { tv:2651, tl:53, tc:4, ts:0, xv:3101, xl:47, xc:2, xs:13 },
+  "https://www.instagram.com/reel/DVRbtsiDdIH/": { tv:0, tl:0, tc:0, ts:0, xv:868, xl:12, xc:0, xs:2 },
+  "https://www.instagram.com/reel/DULiouWDaLk/": { tv:2410, tl:73, tc:1, ts:0, xv:2040, xl:24, xc:0, xs:9 },
+  "https://www.instagram.com/reel/DUI6hFLjfq1/": { tv:827, tl:30, tc:1, ts:0, xv:0, xl:0, xc:0, xs:0 },
+  "https://www.instagram.com/reel/DUGiYdlDcBe/": { tv:998, tl:30, tc:3, ts:0, xv:1995, xl:25, xc:0, xs:9 },
+  "https://www.instagram.com/reel/DUEvZ61jaUB/": { tv:851, tl:29, tc:1, ts:0, xv:1332, xl:22, xc:0, xs:8 },
+  "https://www.instagram.com/reel/DUDwXSKDTye/": { tv:4840, tl:111, tc:2, ts:0, xv:1129, xl:21, xc:1, xs:6 },
+  "https://www.instagram.com/reel/DUBOdNTDWqJ/": { tv:834, tl:30, tc:1, ts:0, xv:1944, xl:29, xc:1, xs:4 },
+  "https://www.instagram.com/reel/DT_u2kjDSgU/": { tv:2312, tl:66, tc:1, ts:0, xv:2196, xl:40, xc:1, xs:8 },
+  "https://www.instagram.com/reel/DT-unGZjQRS/": { tv:352, tl:9, tc:0, ts:0, xv:1639, xl:32, xc:0, xs:8 },
+  "https://www.instagram.com/reel/DT8C4iYDVJ1/": { tv:1355, tl:39, tc:0, ts:0, xv:2601, xl:33, xc:1, xs:12 },
+  "https://www.instagram.com/reel/DT3CAOVDfBP/": { tv:1322, tl:49, tc:0, ts:0, xv:1859, xl:34, xc:0, xs:7 },
+  "https://www.instagram.com/reel/DT1bqdcDQ0v/": { tv:336, tl:8, tc:0, ts:0, xv:1299, xl:23, xc:1, xs:5 },
+  "https://www.instagram.com/reel/DT0zSuZjcyH/": { tv:694, tl:30, tc:0, ts:0, xv:1055, xl:16, xc:0, xs:4 },
+  "2026-01-21|El rule of law. #10ampro #busi": { tv:450, tl:21, tc:0, ts:0, xv:1603, xl:26, xc:0, xs:4 },
+  "https://www.instagram.com/reel/DTxv7RRDbbN/": { tv:1383, tl:53, tc:0, ts:0, xv:2713, xl:20, xc:0, xs:4 },
+  "https://www.instagram.com/reel/DTvrOlnjeDx/": { tv:285, tl:12, tc:0, ts:0, xv:1770, xl:21, xc:0, xs:6 },
+  "https://www.instagram.com/reel/DTs1vDaDR_6/": { tv:3734, tl:117, tc:7, ts:0, xv:2175, xl:21, xc:0, xs:3 },
+  "https://www.instagram.com/reel/DTqPXMcDWsq/": { tv:993, tl:46, tc:1, ts:0, xv:1504, xl:28, xc:0, xs:11 },
+  "https://www.instagram.com/reel/DTnxOm7DX7z/": { tv:1870, tl:69, tc:2, ts:0, xv:1416, xl:27, xc:0, xs:8 },
+  "https://www.instagram.com/reel/DTlFs9NDdja/": { tv:825, tl:26, tc:2, ts:0, xv:525, xl:11, xc:1, xs:2 },
+  "https://www.instagram.com/reel/DTjfGpzjWLm/": { tv:419, tl:25, tc:0, ts:0, xv:3399, xl:40, xc:0, xs:19 },
+  "https://www.instagram.com/reel/DTiYlTijce8/": { tv:0, tl:0, tc:0, ts:0, xv:2510, xl:24, xc:1, xs:3 },
+  "2026-01-14|Venezuela entra a una nueva er": { tv:6531, tl:144, tc:13, ts:0, xv:1089, xl:18, xc:0, xs:2 },
+  "https://www.instagram.com/reel/DTdJMRfDVPw/": { tv:1746, tl:85, tc:2, ts:0, xv:1634, xl:32, xc:0, xs:7 },
+  "https://www.instagram.com/reel/DTayAqEjQv1/": { tv:3501, tl:102, tc:3, ts:0, xv:2103, xl:38, xc:1, xs:11 },
+  "2026-01-10|El espejismo del salario mínim": { tv:104000, tl:2809, tc:216, ts:0, xv:11452, xl:1078, xc:88, xs:409 },
+  "https://www.instagram.com/reel/DTTU5wVjUPd/": { tv:26000, tl:764, tc:92, ts:0, xv:12380, xl:632, xc:90, xs:231 },
+  "https://www.instagram.com/reel/DTQebHRjUso/": { tv:56000, tl:1355, tc:38, ts:0, xv:15441, xl:275, xc:20, xs:53 },
+  "https://www.instagram.com/reel/DTOtTFWDZkp/": { tv:8028, tl:208, tc:15, ts:0, xv:1419, xl:30, xc:1, xs:11 },
+  "https://www.instagram.com/reel/DTNyydXDfOZ/": { tv:731, tl:34, tc:0, ts:0, xv:2009, xl:27, xc:3, xs:7 },
+  "https://www.instagram.com/reel/DTMLYYSjZfS/": { tv:11000, tl:315, tc:6, ts:0, xv:1263, xl:20, xc:1, xs:11 },
+  "https://www.instagram.com/reel/DTLIBqjjWKb/": { tv:7197, tl:181, tc:15, ts:0, xv:1073, xl:5, xc:1, xs:0 },
+  "https://www.instagram.com/reel/DTJiMhBDdW-/": { tv:494, tl:26, tc:0, ts:0, xv:909, xl:13, xc:1, xs:3 },
+  "https://www.instagram.com/reel/DTIiypIjTn0/": { tv:344, tl:5, tc:0, ts:0, xv:790, xl:8, xc:0, xs:2 },
+  "https://www.instagram.com/reel/DTGOHxTDcfv/": { tv:488, tl:17, tc:1, ts:0, xv:796, xl:10, xc:0, xs:2 },
+  "https://www.instagram.com/reel/DTBH2DBjSHc/": { tv:1327, tl:39, tc:0, ts:0, xv:692, xl:5, xc:0, xs:1 },
+  "https://www.instagram.com/reel/DS7qqEDDWqc/": { tv:1951, tl:76, tc:3, ts:0, xv:1527, xl:27, xc:0, xs:11 },
+  "https://www.instagram.com/reel/DS5Q_x5DfE8/": { tv:849, tl:33, tc:5, ts:0, xv:1886, xl:22, xc:1, xs:9 },
+  "2025-12-28|Por qué no evolucionamos #10am": { tv:847, tl:29, tc:0, ts:0, xv:1648, xl:10, xc:1, xs:1 },
+  "https://www.instagram.com/reel/DS6I2SUjRfM/": { tv:341, tl:19, tc:0, ts:0, xv:0, xl:0, xc:0, xs:0 },
+  "2025-12-26|Especialización de negocios ve": { tv:800, tl:31, tc:0, ts:0, xv:0, xl:0, xc:0, xs:0 },
+  "https://www.instagram.com/reel/DSsOCElDZ4W/": { tv:295, tl:17, tc:0, ts:0, xv:2240, xl:30, xc:0, xs:13 },
+  "2025-12-24|Los colombianos somos poco pro": { tv:292, tl:15, tc:0, ts:0, xv:528, xl:7, xc:0, xs:4 },
+  "https://www.instagram.com/reel/DSnDmmojWmZ/": { tv:569, tl:27, tc:0, ts:0, xv:0, xl:0, xc:0, xs:0 },
+  "https://www.instagram.com/reel/DSkjDLlDQgg/": { tv:2357, tl:73, tc:3, ts:0, xv:2087, xl:33, xc:1, xs:9 },
+  "https://www.instagram.com/reel/DSh44hyDVE1/": { tv:307, tl:10, tc:0, ts:0, xv:691, xl:9, xc:1, xs:3 },
+  "https://www.instagram.com/reel/DScwq5ZDdpS/": { tv:253, tl:13, tc:0, ts:0, xv:0, xl:0, xc:0, xs:0 },
+  "https://www.instagram.com/reel/DSaLdEgjUhU/": { tv:398, tl:13, tc:1, ts:0, xv:0, xl:0, xc:0, xs:0 },
+  "https://www.instagram.com/reel/DSXqrdsjVol/": { tv:339, tl:18, tc:0, ts:0, xv:731, xl:11, xc:0, xs:4 },
+  "https://www.instagram.com/reel/DSVx8mRjb35/": { tv:254, tl:13, tc:0, ts:0, xv:915, xl:10, xc:0, xs:6 },
+  "https://www.instagram.com/reel/DSS6XsqjfEd/": { tv:366, tl:18, tc:0, ts:0, xv:948, xl:13, xc:0, xs:6 }
+};
+
+// Apply cached TikTok & X data to clips loaded from GSheet
+function applyCachedTTXData() {
+  let matched = 0;
+  SAMPLE_DATA.forEach(clip => {
+    // Try matching by IG permalink first
+    let cache = clip.ig ? CACHED_TTX_DATA[clip.ig] : null;
+    // Fallback: match by date|title
+    if (!cache && clip.date && clip.title) {
+      const key = clip.date + "|" + clip.title.substring(0, 30);
+      cache = CACHED_TTX_DATA[key];
+    }
+    if (cache) {
+      clip.views.tiktok = cache.tv;
+      clip.likes.tiktok = cache.tl;
+      clip.comments.tiktok = cache.tc;
+      clip.shares.tiktok = cache.ts;
+      clip.views.x = cache.xv;
+      clip.likes.x = cache.xl;
+      clip.comments.x = cache.xc;
+      clip.shares.x = cache.xs;
+      matched++;
+    }
+  });
+  console.log(`[10AMPRO] Cached TikTok/X data applied (${matched}/${SAMPLE_DATA.length} matched)`);
+}
+
 // ═══ AUTO-FETCH YOUTUBE DATA ═══
 // ═══════════════════════════════════════════════════════════
 // DATA LOADING PIPELINE: GSheet → YT API → IG API → Render
@@ -220,7 +330,7 @@ async function autoFetchIG() {
   }
 }
 
-// Master loader: GSheet → APIs → Render
+// Master loader: GSheet → Cached TT/X → YT API → IG API → Render
 (async function loadAllData() {
   // Step 1: Load clips from Google Sheets
   const gsheetClips = await loadClipsFromGSheet();
@@ -229,13 +339,16 @@ async function autoFetchIG() {
     gsheetClips.forEach(c => SAMPLE_DATA.push(c));
   }
   
-  // Step 2: Fetch YouTube data
+  // Step 2: Apply cached TikTok & X data (verified manual exports)
+  applyCachedTTXData();
+  
+  // Step 3: Fetch YouTube data (real-time API)
   await autoFetchYT();
   
-  // Step 3: Fetch Instagram data
+  // Step 4: Fetch Instagram data (real-time API)
   await autoFetchIG();
   
-  // Step 4: Trigger React re-render
+  // Step 5: Trigger React re-render
   window.dispatchEvent(new Event("yt-data-updated"));
   console.log(`[10AMPRO] All data loaded: ${SAMPLE_DATA.length} clips`);
 })();
