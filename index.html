@@ -192,7 +192,7 @@ async function autoFetchIG() {
       if (d.comments > 0) clip.comments.ig = d.comments;
       if (d.views > 0) clip.views.ig = d.views;
       if (d.shares > 0) clip.shares.ig = d.shares;
-      if (!clip.title && d.caption) clip.title = d.caption.substring(0, 80);
+      if (d.caption) clip.title = d.caption.substring(0, 80);
       matched++;
     }
   });

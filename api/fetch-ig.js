@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
     // Step 2: Get all media (reels) from the IG account using page token
     // Use v22.0+ which supports the new "views" metric (plays was deprecated April 2025)
-    const mediaUrl = `https://graph.facebook.com/v22.0/${IG_USER_ID}/media?fields=id,caption,timestamp,media_type,permalink,like_count,comments_count&limit=100&access_token=${pageToken}`;
+    const mediaUrl = `https://graph.facebook.com/v22.0/${IG_USER_ID}/media?fields=id,caption,timestamp,media_type,permalink,like_count,comments_count,video_views&limit=100&access_token=${pageToken}`;
     
     const mediaResp = await fetch(mediaUrl);
     if (!mediaResp.ok) {
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
         timestamp: item.timestamp,
         likes: item.like_count || 0,
         comments: item.comments_count || 0,
-        views,
+        views: views || item.video_views || 0,
         shares,
         saves,
       });
