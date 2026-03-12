@@ -209,7 +209,10 @@ async function autoFetchIG() {
   } catch(e) { console.warn("[10AMPRO] GSheet failed:", e.message); }
   try { await autoFetchYT(); } catch(e) { console.warn("[10AMPRO] YT:", e.message); }
   try { await autoFetchIG(); } catch(e) { console.warn("[10AMPRO] IG:", e.message); }
+  // Dispatch immediately + with delay to guarantee React catches it
   window.dispatchEvent(new Event("yt-data-updated"));
+  setTimeout(() => window.dispatchEvent(new Event("yt-data-updated")), 500);
+  setTimeout(() => window.dispatchEvent(new Event("yt-data-updated")), 2000);
   console.log(`[10AMPRO] All data loaded: ${SAMPLE_DATA.length} clips`);
 })();
 
