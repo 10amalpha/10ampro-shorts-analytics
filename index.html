@@ -201,6 +201,7 @@ YT_IDS.forEach(item => {
       if (!m) return;
       const d = igMap[m[1]];
       if (d) {
+        if (d.caption && d.caption.length > 5) clip.title = d.caption;
         if (d.likes > 0) clip.likes.ig = d.likes;
         if (d.comments > 0) clip.comments.ig = d.comments;
         if (d.views > 0) clip.views.ig = d.views;
