@@ -593,31 +593,67 @@ function ShortsAnalytics() {
                 }
               }
 
+              // Gap between #1 and average
+              const avgViews = d.count > 0 ? Math.round(d.totalViews / d.count) : 0;
+              const gapMultiplier = avgViews > 0 ? (bestViewsTotal / avgViews).toFixed(1) : 0;
+
+              // Worst 3 clips avg
+              const bottom3 = d.sorted ? d.sorted.slice(-3) : [];
+              const bottom3Avg = bottom3.length > 0 ? Math.round(bottom3.reduce((s, c) => s + PLATFORMS.reduce((ps, p) => ps + c.views[p], 0), 0) / bottom3.length) : 0;
+
+              // Best day of week
+              const dayMap = { 0: "Domingo", 1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves", 5: "Viernes", 6: "Sábado" };
+              const dayViews = {};
+              (d.sorted || []).forEach(c => {
+                const dow = new Date(c.date + "T12:00:00").getDay();
+                if (!dayViews[dow]) dayViews[dow] = { total: 0, count: 0 };
+                dayViews[dow].total += PLATFORMS.reduce((s, p) => s + c.views[p], 0);
+                dayViews[dow].count++;
+              });
+              let bestDay = null, bestDayAvg = 0;
+              Object.entries(dayViews).forEach(([dow, v]) => {
+                const avg = v.count > 0 ? v.total / v.count : 0;
+                if (avg > bestDayAvg) { bestDayAvg = avg; bestDay = dayMap[dow]; }
+              });
+
+              // Hook score: clips >5K vs total
+              const above5K = (d.sorted || []).filter(c => PLATFORMS.reduce((s, p) => s + c.views[p], 0) > 5000).length;
+              const hookRate = d.count > 0 ? ((above5K / d.count) * 100).toFixed(0) : 0;
+
               const insights = [
                 {
-                  emoji: "🏆",
-                  title: "Clip estrella",
-                  text: bestViews ? `"${bestViews.title}" lideró con ${fmt(bestViewsTotal)} vistas. Analiza qué hizo diferente — el hook, el tema, la duración — y replica ese formato.` : ""
+                  emoji: "🔥",
+                  title: "El hook que funcionó",
+                  text: bestViews ? `"${bestViews.title}" hizo ${fmt(bestViewsTotal)} vistas — ${gapMultiplier}x más que el promedio (${fmt(avgViews)}). ¿Qué tenía ese clip? Probablemente una frase provocadora en los primeros 2 segundos. Cada clip debería abrir con esa misma energía. Si el hook no genera tensión, el scroll gana.` : ""
                 },
                 {
-                  emoji: "💡",
-                  title: "Engagement real",
-                  text: bestEng ? `"${bestEng.title}" tuvo el mejor engagement (${bestEngRate}% like rate). Alto engagement = el algoritmo lo empuja más.` : ""
+                  emoji: "💀",
+                  title: "La realidad incómoda",
+                  text: worstClip ? `"${worstClip.title}" hizo solo ${fmt(worstTotal)} vistas. Los 3 peores clips promedian ${fmt(bottom3Avg)}. Eso es ${avgViews > 0 && bottom3Avg > 0 ? ((1 - bottom3Avg / avgViews) * 100).toFixed(0) : 0}% menos que tu promedio. No todo va a ser viral — pero si un clip no supera ${fmt(Math.round(avgViews * 0.5))}, el tema probablemente no era lo suficientemente polémico o el corte no tenía ritmo.` : ""
                 },
                 {
-                  emoji: "📊",
-                  title: "Plataforma dominante",
-                  text: `${top1.label} domina con ${top1.pct.toFixed(0)}% de las vistas. ${weakest.label} es la más débil (${weakest.pct.toFixed(0)}%). Adapta el formato específicamente para ${weakest.label}.`
+                  emoji: "🎯",
+                  title: "Tasa de hooks que pegan",
+                  text: `Solo ${above5K} de ${d.count} clips (${hookRate}%) superaron las 5K vistas. ${parseInt(hookRate) < 30 ? "Eso es bajo — necesitas hooks más agresivos. Los primeros 2 segundos son TODO. Si no hay conflicto, dato loco, o pregunta incómoda al arrancar, el algoritmo no lo empuja." : parseInt(hookRate) < 50 ? "Vas por buen camino, pero el objetivo es que más de la mitad de tus clips superen 5K. Experimenta con hooks tipo pregunta retórica o dato shocking." : "Buen ratio. Mantén esa consistencia — cada clip debe sentirse como si el viewer NO pudiera hacer scroll."}`
                 },
                 {
-                  emoji: "📈",
-                  title: "Tendencia semanal",
-                  text: trendInsight || "No hay suficientes semanas para calcular tendencia."
+                  emoji: "📅",
+                  title: "Tu mejor día",
+                  text: bestDay ? `Los clips publicados el ${bestDay} promedian ${fmt(Math.round(bestDayAvg))} vistas — es tu mejor día. ${bestDay === "Sábado" || bestDay === "Domingo" ? "El fin de semana la gente tiene más tiempo de scroll. Aprovéchalo con los clips más fuertes." : "La audiencia está activa entre semana. Programa los clips con mejor hook para ese día."}` : ""
                 },
                 {
-                  emoji: "⚠️",
-                  title: "Clip para mejorar",
-                  text: worstClip ? `"${worstClip.title}" tuvo solo ${fmt(worstTotal)} vistas. ¿El hook no enganchó en los primeros 2 segundos? Usa este como referencia de qué evitar.` : ""
+                  emoji: "⚡",
+                  title: "Cadencia y ritmo",
+                  text: (() => {
+                    const weekArr = Object.entries(d.weeks).sort(([a], [b]) => a.localeCompare(b));
+                    if (weekArr.length < 2) return "Necesitas más semanas para analizar cadencia.";
+                    const counts = weekArr.map(([, w]) => w.count);
+                    const avgPerWeek = (counts.reduce((a, b) => a + b, 0) / counts.length).toFixed(1);
+                    const lastW = weekArr[weekArr.length - 1][1];
+                    const prevW = weekArr[weekArr.length - 2][1];
+                    const viewChange = prevW.views > 0 ? ((lastW.views - prevW.views) / prevW.views * 100).toFixed(0) : 0;
+                    return `Estás publicando ~${avgPerWeek} clips/semana. La última semana: ${lastW.count} clips con ${fmt(lastW.views)} vistas (${parseInt(viewChange) >= 0 ? "+" : ""}${viewChange}% vs. anterior). ${parseInt(viewChange) < -20 ? "La caída es notable — ¿bajó la calidad o el tema no resonó? No publiques por publicar. Menos clips pero con mejor hook > muchos clips sin alma." : parseInt(viewChange) > 20 ? "El momentum está subiendo. No aflojes — cuando el algoritmo te está empujando, alimenta la máquina." : "Estable. Para romper el techo necesitas experimentar: hooks más cortos, más controversia, o un formato nuevo que nadie espere."}`;
+                  })()
                 },
               ].filter(i => i.text);
 
