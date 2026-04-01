@@ -551,6 +551,93 @@ function ShortsAnalytics() {
                 </div>
               ))}
             </div>
+
+            {/* Gordo Insights */}
+            {(() => {
+              const d = analytics;
+              if (!d || d.count < 2) return null;
+              const igPct = d.totalViews > 0 ? (d.platformTotals.ig.views / d.totalViews * 100) : 0;
+              const xPct = d.totalViews > 0 ? (d.platformTotals.x.views / d.totalViews * 100) : 0;
+              const ytPct = d.totalViews > 0 ? (d.platformTotals.yt.views / d.totalViews * 100) : 0;
+              const ttPct = d.totalViews > 0 ? (d.platformTotals.tiktok.views / d.totalViews * 100) : 0;
+              const platforms = [
+                { key: "ig", label: "Instagram", pct: igPct },
+                { key: "x", label: "X", pct: xPct },
+                { key: "yt", label: "YouTube", pct: ytPct },
+                { key: "tiktok", label: "TikTok", pct: ttPct },
+              ].sort((a, b) => b.pct - a.pct);
+              const top1 = platforms[0];
+              const weakest = platforms[platforms.length - 1];
+
+              const bestEng = d.topByEngagement?.[0];
+              const bestEngTotal = bestEng ? PLATFORMS.reduce((s, p) => s + bestEng.views[p], 0) : 0;
+              const bestEngLikes = bestEng ? PLATFORMS.reduce((s, p) => s + bestEng.likes[p], 0) : 0;
+              const bestEngRate = bestEngTotal > 0 ? ((bestEngLikes / bestEngTotal) * 100).toFixed(1) : 0;
+
+              const bestViews = d.topByViews?.[0];
+              const bestViewsTotal = bestViews ? PLATFORMS.reduce((s, p) => s + bestViews.views[p], 0) : 0;
+
+              const worstClip = d.sorted?.[d.sorted.length - 1];
+              const worstTotal = worstClip ? PLATFORMS.reduce((s, p) => s + worstClip.views[p], 0) : 0;
+
+              const weekKeys = Object.keys(d.weeks).sort();
+              let trendInsight = "";
+              if (weekKeys.length >= 2) {
+                const lastWeek = d.weeks[weekKeys[weekKeys.length - 1]];
+                const prevWeek = d.weeks[weekKeys[weekKeys.length - 2]];
+                if (prevWeek.views > 0) {
+                  const change = ((lastWeek.views - prevWeek.views) / prevWeek.views * 100).toFixed(0);
+                  trendInsight = parseInt(change) >= 0
+                    ? `La última semana subió ${change}% vs. la anterior — el momentum está creciendo.`
+                    : `La última semana bajó ${Math.abs(parseInt(change))}% vs. la anterior. Revisa si el tema o el hook fueron suficientemente fuertes.`;
+                }
+              }
+
+              const insights = [
+                {
+                  emoji: "🏆",
+                  title: "Clip estrella",
+                  text: bestViews ? `"${bestViews.title}" lideró con ${fmt(bestViewsTotal)} vistas. Analiza qué hizo diferente — el hook, el tema, la duración — y replica ese formato.` : ""
+                },
+                {
+                  emoji: "💡",
+                  title: "Engagement real",
+                  text: bestEng ? `"${bestEng.title}" tuvo el mejor engagement (${bestEngRate}% like rate). Alto engagement = el algoritmo lo empuja más.` : ""
+                },
+                {
+                  emoji: "📊",
+                  title: "Plataforma dominante",
+                  text: `${top1.label} domina con ${top1.pct.toFixed(0)}% de las vistas. ${weakest.label} es la más débil (${weakest.pct.toFixed(0)}%). Adapta el formato específicamente para ${weakest.label}.`
+                },
+                {
+                  emoji: "📈",
+                  title: "Tendencia semanal",
+                  text: trendInsight || "No hay suficientes semanas para calcular tendencia."
+                },
+                {
+                  emoji: "⚠️",
+                  title: "Clip para mejorar",
+                  text: worstClip ? `"${worstClip.title}" tuvo solo ${fmt(worstTotal)} vistas. ¿El hook no enganchó en los primeros 2 segundos? Usa este como referencia de qué evitar.` : ""
+                },
+              ].filter(i => i.text);
+
+              return (
+                <div style={{ background: "#12141a", border: "1px solid #2a2d35", borderRadius: 12, padding: 20, marginTop: 20 }}>
+                  <h3 style={{ fontSize: 14, color: "#8a8f98", marginBottom: 16, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>🧠 Insights para El Gordo</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {insights.map((ins, i) => (
+                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                        <span style={{ fontSize: 18, lineHeight: 1 }}>{ins.emoji}</span>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e4e9", marginBottom: 2 }}>{ins.title}</div>
+                          <div style={{ fontSize: 12, color: "#8a8f98", lineHeight: 1.5 }}>{ins.text}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
 
