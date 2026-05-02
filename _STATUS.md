@@ -3,16 +3,15 @@
 **Repo:** `10amalpha/10ampro-shorts-analytics`
 **Live:** https://10ampro-shorts-analytics.vercel.app/
 **Last status update:** May 2, 2026
-**Last code commit:** `26b27d1` — "feat: add April 2026 clips (22 clips, X analytics merged)" (May 2, 2026)
-**Last data update:** May 2, 2026 — April 2026 data added (22 clips)
+**Last code commit:** `eac8adf` — "feat: add TikTok views/likes/comments + real titles for April clips" (May 2, 2026)
+**Last data update:** May 2, 2026 — April 2026 fully loaded (22 clips, all 4 platforms)
 
 ---
 
 ## ⚠️ Pendientes inmediatos (May 2, 2026)
 
 1. **Renovar `IG_ACCESS_TOKEN`** — vence ~11 de mayo. Hoy todavía responde, pero quedan ~9 días. Refresh inmediato (ver sección IG Token Refresh abajo).
-2. **TikTok views/likes/comments para abril** — los 22 clips de abril se cargaron con TikTok=0 porque el zip que se subió era Overview diario, no per-video. Cuando haya screenshots de TikTok Studio, hacer un patch para llenar los 22 entries (id 104-125).
-3. **Títulos reales para abril** — los 22 entries quedaron con título placeholder "Pendiente de título". El IG API sobrescribe en page load con la caption (que en general es buena), pero cuando haya screenshots de TikTok Studio actualizar al título real.
+2. **Mayo cargará automáticamente** cuando suba el GSheet + X Analytics CSV + screenshots de TT Studio (mismo proceso que abril).
 
 ---
 
@@ -191,7 +190,7 @@ La versión original hacía 100+ HTTP calls (1 por reel) → 504 timeout en Verc
 | Jan 2026 | 35 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
 | Feb 2026 | 26 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
 | Mar 2026 | 24 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
-| **Apr 2026** | **22** | ⚠️ TT=0 (faltan screenshots) | ✅ X Analytics CSV | ✅ live API | ✅ live API |
+| **Apr 2026** | **22** | ✅ TT Studio screenshots | ✅ X Analytics CSV | ✅ live API | ✅ live API |
 
 **Total actual: 122 clips tracked.**
 
@@ -199,8 +198,8 @@ La versión original hacía 100+ HTTP calls (1 por reel) → 504 timeout en Verc
 - ✅ X Analytics CSV (`account_analytics_content_*`): 21/22 matched (1 clip del 20 Abr no tenía X URL en el GSheet)
 - ✅ YouTube IDs from GSheet → API llena views/likes/comments en page load
 - ✅ Instagram URLs from GSheet → API llena views/likes/comments/shares + sobrescribe títulos con captions
-- ⚠️ TikTok URLs cargados, pero views/likes/comments=0 (no había per-video data, solo Overview diario)
-- ⚠️ Títulos placeholder "Pendiente de título" — IG API los sobrescribe en page load
+- ✅ TikTok Studio screenshots: 22/22 matched (Apr 12 mapped to TT's Apr 13 — mismo clip "China/Estrecho", publicado un día después en TikTok)
+- ✅ Títulos reales hardcoded desde TT Studio (IG captions todavía pueden override en page load si caption > 5 chars)
 
 ---
 
