@@ -3,16 +3,16 @@
 **Repo:** `10amalpha/10ampro-shorts-analytics`
 **Live:** https://10ampro-shorts-analytics.vercel.app/
 **Last status update:** May 2, 2026
-**Last code commit:** `38d01a7` — "docs: update _STATUS.md — full session recap, insights docs, lesson #8-10" (Apr 1, 2026)
-**Last data update:** Apr 1, 2026 — March 2026 data added (24 clips)
+**Last code commit:** `26b27d1` — "feat: add April 2026 clips (22 clips, X analytics merged)" (May 2, 2026)
+**Last data update:** May 2, 2026 — April 2026 data added (22 clips)
 
 ---
 
 ## ⚠️ Pendientes inmediatos (May 2, 2026)
 
-1. **Cargar abril + mayo (parcial)** — el dashboard se quedó en `2026-03-30`. Faltan ~30 días de clips. La IG API ya tiene 100 reels que llegan hasta `2026-05-01`, pero el array `SAMPLE_DATA` en `index.html` no se ha tocado desde el 1 de abril. Para hacer el merge falta el GSheet CSV + X Analytics CSV + TikTok Studio screenshots de El Gordo.
-2. **Renovar `IG_ACCESS_TOKEN`** — vence ~11 de mayo. Hoy todavía responde, pero quedan ~9 días. Refresh inmediato (ver sección IG Token Refresh abajo).
-3. **Conteo real ≠ documentado** — el `_STATUS.md` anterior decía 104 clips / 39 enero. Conteo real en `SAMPLE_DATA`: **100 clips** (15 Dec / 35 Jan / 26 Feb / 24 Mar). Tabla corregida abajo.
+1. **Renovar `IG_ACCESS_TOKEN`** — vence ~11 de mayo. Hoy todavía responde, pero quedan ~9 días. Refresh inmediato (ver sección IG Token Refresh abajo).
+2. **TikTok views/likes/comments para abril** — los 22 clips de abril se cargaron con TikTok=0 porque el zip que se subió era Overview diario, no per-video. Cuando haya screenshots de TikTok Studio, hacer un patch para llenar los 22 entries (id 104-125).
+3. **Títulos reales para abril** — los 22 entries quedaron con título placeholder "Pendiente de título". El IG API sobrescribe en page load con la caption (que en general es buena), pero cuando haya screenshots de TikTok Studio actualizar al título real.
 
 ---
 
@@ -191,14 +191,16 @@ La versión original hacía 100+ HTTP calls (1 por reel) → 504 timeout en Verc
 | Jan 2026 | 35 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
 | Feb 2026 | 26 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
 | Mar 2026 | 24 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
-| **Apr 2026** | **0 — PENDIENTE** | ❌ | ❌ | ❌ (no IDs en `SAMPLE_DATA`) | ❌ (no IDs en `SAMPLE_DATA`) |
-| **May 2026 (parcial)** | **0 — PENDIENTE** | ❌ | ❌ | ❌ | ❌ |
+| **Apr 2026** | **22** | ⚠️ TT=0 (faltan screenshots) | ✅ X Analytics CSV | ✅ live API | ✅ live API |
 
-**Total actual: 100 clips tracked.** (El status anterior decía 104 — mal conteo.)
+**Total actual: 122 clips tracked.**
 
-**Lo que sí hay disponible para abril/mayo:**
-- IG API ya retorna ~31 reels de abril + 1 de mayo (los últimos 100 reels llegan hasta Jan 15)
-- Para hacer el merge correcto faltan: GSheet CSV de El Gordo + X Analytics CSV + TikTok Studio screenshots
+**Lo que se cargó para abril (22 clips, ids 104-125):**
+- ✅ X Analytics CSV (`account_analytics_content_*`): 21/22 matched (1 clip del 20 Abr no tenía X URL en el GSheet)
+- ✅ YouTube IDs from GSheet → API llena views/likes/comments en page load
+- ✅ Instagram URLs from GSheet → API llena views/likes/comments/shares + sobrescribe títulos con captions
+- ⚠️ TikTok URLs cargados, pero views/likes/comments=0 (no había per-video data, solo Overview diario)
+- ⚠️ Títulos placeholder "Pendiente de título" — IG API los sobrescribe en page load
 
 ---
 
