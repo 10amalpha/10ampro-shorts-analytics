@@ -2,71 +2,82 @@
 
 **Repo:** `10amalpha/10ampro-shorts-analytics`
 **Live:** https://10ampro-shorts-analytics.vercel.app/
-**Last update:** April 1, 2026 — March 2026 data added (24 clips)
-**Last commit:** `57bb174` — "feat: rewrite insights as aggressive coach-style analysis for El Gordo"
+**Last status update:** May 2, 2026
+**Last code commit:** `38d01a7` — "docs: update _STATUS.md — full session recap, insights docs, lesson #8-10" (Apr 1, 2026)
+**Last data update:** Apr 1, 2026 — March 2026 data added (24 clips)
+
+---
+
+## ⚠️ Pendientes inmediatos (May 2, 2026)
+
+1. **Cargar abril + mayo (parcial)** — el dashboard se quedó en `2026-03-30`. Faltan ~30 días de clips. La IG API ya tiene 100 reels que llegan hasta `2026-05-01`, pero el array `SAMPLE_DATA` en `index.html` no se ha tocado desde el 1 de abril. Para hacer el merge falta el GSheet CSV + X Analytics CSV + TikTok Studio screenshots de El Gordo.
+2. **Renovar `IG_ACCESS_TOKEN`** — vence ~11 de mayo. Hoy todavía responde, pero quedan ~9 días. Refresh inmediato (ver sección IG Token Refresh abajo).
+3. **Conteo real ≠ documentado** — el `_STATUS.md` anterior decía 104 clips / 39 enero. Conteo real en `SAMPLE_DATA`: **100 clips** (15 Dec / 35 Jan / 26 Feb / 24 Mar). Tabla corregida abajo.
 
 ---
 
 ## Architecture
 
-Single-page React app (`index.html`) with 3 Vercel serverless APIs:
+Single-page React app (`index.html`) con 3 Vercel serverless APIs:
 
 | File | What it does | Auto/Manual |
 |---|---|---|
-| `index.html` | Dashboard — all UI, data, analytics | SAMPLE_DATA is manual |
-| `/api/fetch-yt.js` | YouTube views/likes/comments | ✅ AUTO on page load |
-| `/api/fetch-ig.js` | Instagram views/likes/comments/shares + captions as title fallback | ✅ AUTO on page load (batch API) |
-| `/api/fetch-gsheet.js` | Google Sheet proxy (NOT used by dashboard yet) | ⏸ Deployed but unused |
+| `index.html` | Dashboard — UI, data, analytics | `SAMPLE_DATA` es manual (TikTok + X) |
+| `/api/fetch-yt.js` | YouTube views/likes/comments | ✅ AUTO en page load |
+| `/api/fetch-ig.js` | Instagram views/likes/comments/shares + captions como title fallback | ✅ AUTO en page load (Batch API) |
+| `/api/fetch-gsheet.js` | Proxy del Google Sheet (NO usado por el dashboard) | ⏸ Deployed but unused |
 
 **Data flow on page load:**
-1. `SAMPLE_DATA` array renders immediately (hardcoded TikTok, X, titles)
-2. `/api/fetch-yt` fires → fills YT stats → dispatches `yt-data-updated` event
-3. `/api/fetch-ig` fires → fills IG stats + overwrites titles with IG captions (if caption > 5 chars) → dispatches `yt-data-updated` event
-4. React re-renders all tabs with complete data
+1. `SAMPLE_DATA` array renderiza inmediato (TikTok + X hardcoded, titles hardcoded)
+2. `/api/fetch-yt` dispara → llena YT stats → dispatch `yt-data-updated`
+3. `/api/fetch-ig` dispara → llena IG stats + sobrescribe títulos con captions IG (si caption > 5 chars) → dispatch `yt-data-updated`
+4. React re-renderiza todas las pestañas
 
-**All 6 tabs are 100% dynamic** — computed from `SAMPLE_DATA` filtered by period. No tab needs manual updates.
+**Health check (verified May 2, 2026):**
+- `GET /api/fetch-yt?ids=LZTTyOad7Iw,V2pwKu1TbjU,ws6m6HoGZuc` → 200, retorna datos reales
+- `GET /api/fetch-ig` → 200, retorna 100 reels (rango Jan 15 → May 1)
 
-**Tabs:**
-- **Overview** — KPI cards, platform distribution, top 5, weekly performance, 🧠 Insights para El Gordo (5 dynamic coach-style insights)
-- **Rankings** — sortable table of all clips
-- **Platforms** — per-platform breakdown
-- **Strategy** — content strategy recommendations
-- **Conversión** — conversion analysis
-- **Patrones** — title/topic pattern analysis
+**Tabs (todas dinámicas, no requieren update manual):**
+- **Overview** — KPIs, distribución por plataforma, top 5, weekly performance, 🧠 Insights para El Gordo
+- **Rankings** — tabla sortable de todos los clips
+- **Platforms** — breakdown por plataforma
+- **Strategy** — recomendaciones de contenido
+- **Conversión** — análisis de conversión
+- **Patrones** — análisis de títulos/temas
 
 ---
 
 ## 🧠 Insights para El Gordo (Overview tab)
 
-5 dynamic insights that recalculate per period. Coach-style, not sugarcoated:
+5 insights dinámicos que recalculan por período. Coach style, no sugarcoated:
 
-1. **🔥 El hook que funcionó** — Top clip, how many X above average, push to replicate the opening energy
-2. **💀 La realidad incómoda** — Worst clip + bottom 3 average, calls out when topic wasn't polemic enough
-3. **🎯 Tasa de hooks que pegan** — % of clips above 5K views, with specific coaching per ratio bracket
-4. **📅 Tu mejor día** — Best day of week by avg views, scheduling advice
-5. **⚡ Cadencia y ritmo** — Clips/week, last week vs previous momentum, challenges to not publish without quality
+1. **🔥 El hook que funcionó** — Top clip, cuántas X arriba del promedio, push a replicar la energía del opening
+2. **💀 La realidad incómoda** — Worst clip + bottom 3 average, llama la atención cuando el tema no fue suficientemente polémico
+3. **🎯 Tasa de hooks que pegan** — % de clips arriba de 5K views, coaching específico por bracket
+4. **📅 Tu mejor día** — Mejor día de la semana por avg views, scheduling advice
+5. **⚡ Cadencia y ritmo** — Clips/semana, última semana vs anterior, challenge de no publicar sin calidad
 
 ---
 
 ## Monthly Update Checklist
 
-### What you need from Hernán (3 items):
+### Lo que necesita Hernán (3 items):
 
-1. **Google Sheet CSV** — El Gordo's clip spreadsheet with dates + URLs for all 4 platforms
+1. **Google Sheet CSV** — spreadsheet de El Gordo con fechas + URLs para las 4 plataformas
    - Source: `https://docs.google.com/spreadsheets/d/1huw_MXpES-fNRJ2jKka5uISFjifCqNKIHFvQudbSTW8/`
-   - Contains: date, YT short URL, X post URL, IG reel URL, TikTok URL
-   - NOTE: Episode title column is NOT needed — get real titles from TikTok Studio screenshots
+   - Contiene: date, YT short URL, X post URL, IG reel URL, TikTok URL
+   - NOTA: la columna de título no se necesita — los títulos reales van de TikTok Studio
 
-2. **X Analytics CSV** — export from analytics.x.com
-   - Columns needed: Post id, Impressions, Likes, Replies, Reposts
-   - Match to clips via Post id (extracted from X URL `/status/{id}`)
+2. **X Analytics CSV** — export desde analytics.x.com
+   - Columnas: Post id, Impressions, Likes, Replies, Reposts
+   - Match a clips por Post id (extraído del URL `/status/{id}`)
 
-3. **TikTok Studio screenshots** — Content tab, sorted by most recent
-   - TikTok Studio CSV only exports top ~14 videos, NOT all
-   - Screenshots show ALL videos with views/likes/comments + real clip titles
-   - No shares column in TikTok Studio — set shares to 0
+3. **TikTok Studio screenshots** — Content tab, sorted por más reciente
+   - El CSV de TikTok Studio solo exporta top ~14 videos, NO todos
+   - Screenshots muestran TODOS con views/likes/comments + títulos reales
+   - No hay columna de shares — set shares to 0
 
-4. **Nothing for YouTube or Instagram** — these are LIVE APIs, auto-fetch on page load
+4. **Nada de YouTube ni Instagram** — son APIs en vivo, auto-fetch en page load
 
 ### Step-by-step process:
 
@@ -77,22 +88,22 @@ git clone --depth=1 https://x-access-token:${PAT}@github.com/10amalpha/10ampro-s
 
 STEP 2: Parse Google Sheet CSV
 ──────────────────────────────
-- Extract all NEW clips (dates not already in SAMPLE_DATA)
-- For each clip: date, yt URL, ig URL, tiktok URL, x URL
-- Clean URLs (strip ?utm_source, ?s=20, ?feature=share, etc.)
+- Extract clips NUEVOS (fechas que no estén en SAMPLE_DATA)
+- Por cada clip: date, yt URL, ig URL, tiktok URL, x URL
+- Limpia URLs (strip ?utm_source, ?s=20, ?feature=share, etc.)
 
 STEP 3: Match X Analytics
 ─────────────────────────
-- Extract status ID from each clip's X URL: split("/status/")[1]
-- Find matching row in X Analytics CSV by Post id
+- Extract status ID de cada X URL: split("/status/")[1]
+- Find matching row en X Analytics CSV por Post id
 - Extract: Impressions→views, Likes→likes, Replies→comments, Reposts→shares
 
-STEP 4: Extract TikTok data + titles from screenshots
+STEP 4: Extract TikTok data + titles desde screenshots
 ──────────────────────────────────────────────────────
-- Read views/likes/comments from TikTok Studio screenshots
-- Match by post date (TikTok shows "Mar 15, 3:00 PM" etc.)
-- No shares available — set to 0
-- USE THE TITLE FROM TIKTOK STUDIO — this is the real clip title
+- Read views/likes/comments de los screenshots de TikTok Studio
+- Match por fecha de post (TikTok muestra "Mar 15, 3:00 PM" etc.)
+- No shares disponible — set to 0
+- USA EL TÍTULO DE TIKTOK STUDIO — es el título real del clip
 
 STEP 5: Build SAMPLE_DATA entries
 ──────────────────────────────────
@@ -104,15 +115,15 @@ For each new clip:
   comments: { tiktok: N, yt: 0, ig: 0, x: N },
   shares: { tiktok: 0, yt: 0, ig: 0, x: N } },
 
-- YT and IG → 0 (auto-filled by live APIs)
-- TikTok and X → real numbers from exports
-- Titles → from TikTok Studio (NEVER generic episode name)
+- YT y IG → 0 (auto-filled por las APIs)
+- TikTok y X → números reales de los exports
+- Titles → de TikTok Studio (NUNCA generic episode name)
 
 STEP 6: Insert into index.html
 ───────────────────────────────
-- Add entries at TOP of SAMPLE_DATA array (newest month first)
-- Period filters auto-compute from dates — no manual config needed
-- All 6 tabs + insights auto-update
+- Add entries al TOP del array SAMPLE_DATA (mes más reciente primero)
+- Period filters auto-computan de las dates — no manual config
+- Las 6 tabs + insights auto-update
 
 STEP 7: Push
 ────────────
@@ -126,12 +137,12 @@ git push
 
 ## Critical Rules
 
-1. **NEVER delete TikTok or X data** — no APIs for these, data is manual
-2. **NEVER use episode name as clip title** — use TikTok Studio titles (IG captions are fallback only, truncated to 80 chars)
-3. **YT and IG values in SAMPLE_DATA should be 0** — live APIs fill them on page load
-4. **TikTok shares are always 0** — TikTok Studio doesn't expose this metric
-5. **X shares = Reposts column** from X Analytics CSV
-6. **IG captions override titles on page load** (if caption > 5 chars) — but always hardcode a good title from TikTok Studio as primary
+1. **NUNCA borrar TikTok ni X data** — no hay APIs para esos, data es manual
+2. **NUNCA usar episode name como clip title** — usa TikTok Studio titles (IG captions son fallback, truncadas a 80 chars)
+3. **YT e IG values en SAMPLE_DATA deben ser 0** — las APIs llenan en page load
+4. **TikTok shares siempre 0** — TikTok Studio no expone esa métrica
+5. **X shares = columna Reposts** del X Analytics CSV
+6. **IG captions sobreescriben títulos** en page load (si caption > 5 chars) — pero siempre hardcode un buen título de TikTok Studio como primario
 
 ---
 
@@ -140,53 +151,68 @@ git push
 | Item | Value | Expiry |
 |---|---|---|
 | YT API Key | `AIzaSyANRsjsV-WdoLxM9yEz-yIgBFBdoUYPXCw` | No expiry |
-| IG Access Token | Vercel env var `IG_ACCESS_TOKEN` | ~May 11, 2026 |
+| IG Access Token | Vercel env var `IG_ACCESS_TOKEN` | **~May 11, 2026 — RENOVAR YA** |
 | Meta App (10ampro-analytics) | ID: `1467796011515050` / Secret: `cb0a910adfb960054167df0681bb5b3a` | — |
 | FB Page ID | `1060185473841846` | — |
 | IG Business Account ID | `17841455171483266` | — |
 
-### IG Token Refresh (before May 11, 2026):
-1. Graph API Explorer → app **10ampro-analytics** → add permissions → generate token
-2. Exchange for long-lived: `https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=1467796011515050&client_secret=cb0a910adfb960054167df0681bb5b3a&fb_exchange_token=SHORT_TOKEN`
-3. Update `IG_ACCESS_TOKEN` in Vercel env vars → redeploy
+### IG Token Refresh (URGENTE — antes del 11 de mayo, 2026):
+1. Graph API Explorer (`developers.facebook.com/tools/explorer`) → seleccionar app **10ampro-analytics**
+2. Permisos: `pages_show_list`, `instagram_basic`, `instagram_manage_insights`, `pages_read_engagement`
+3. Generate Access Token → autorizar → copiar short-lived token
+4. Exchange por long-lived (paste en browser):
+   ```
+   https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=1467796011515050&client_secret=cb0a910adfb960054167df0681bb5b3a&fb_exchange_token=SHORT_TOKEN
+   ```
+5. Copiar `access_token` del JSON
+6. Vercel: `vercel.com/10amalpha/10ampro-shorts-analytics/settings/environment-variables` → update `IG_ACCESS_TOKEN`
+7. Redeploy
 
 ---
 
 ## fetch-ig.js — Batch API (fixed April 1, 2026)
 
-The original version made 100+ individual HTTP calls (1 per reel) → 504 timeout on Vercel free tier (10s limit).
+La versión original hacía 100+ HTTP calls (1 por reel) → 504 timeout en Vercel free tier (10s limit).
 
-**Current version uses Facebook Batch API:**
-- 1 call to get page token
-- 1 call to get media list (100 reels)
-- 2 batch calls for insights (50 per batch)
-- 1 fallback batch for zero-view reels
-- **Total: ~5 HTTP calls instead of 100+**
+**Versión actual usa Facebook Batch API:**
+- 1 call para get page token
+- 1 call para get media list (100 reels)
+- 2 batch calls para insights (50 por batch)
+- 1 fallback batch para reels con zero views
+- **Total: ~5 HTTP calls en lugar de 100+**
 
 ---
 
-## Data Coverage
+## Data Coverage (verified May 2, 2026)
 
-| Month | Clips | TikTok | X | YouTube | Instagram |
+| Mes | Clips en `SAMPLE_DATA` | TikTok | X | YouTube | Instagram |
 |---|---|---|---|---|---|
 | Dec 2025 | 15 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
-| Jan 2026 | 39 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
+| Jan 2026 | 35 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
 | Feb 2026 | 26 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
 | Mar 2026 | 24 | ✅ hardcoded | ✅ hardcoded | ✅ live API | ✅ live API |
+| **Apr 2026** | **0 — PENDIENTE** | ❌ | ❌ | ❌ (no IDs en `SAMPLE_DATA`) | ❌ (no IDs en `SAMPLE_DATA`) |
+| **May 2026 (parcial)** | **0 — PENDIENTE** | ❌ | ❌ | ❌ | ❌ |
 
-**Total: 104 clips tracked across 4 platforms**
+**Total actual: 100 clips tracked.** (El status anterior decía 104 — mal conteo.)
+
+**Lo que sí hay disponible para abril/mayo:**
+- IG API ya retorna ~31 reels de abril + 1 de mayo (los últimos 100 reels llegan hasta Jan 15)
+- Para hacer el merge correcto faltan: GSheet CSV de El Gordo + X Analytics CSV + TikTok Studio screenshots
 
 ---
 
 ## Lessons Learned
 
-1. **TikTok Studio CSV only exports top ~14 videos** — screenshots are the only way to get all clips
-2. **Google Sheet episode titles ≠ clip titles** — the sheet inherits one title per episode block; always get real titles from TikTok Studio
-3. **fetch-ig.js must use Batch API** — individual calls per reel timeout on Vercel free tier (10s limit)
-4. **googleapis.com is blocked in Claude's execution container** — never try to call YouTube API from Claude; it only works in Vercel's serverless environment
-5. **No external domains accessible from Claude container** — Vercel, googleapis, graph.facebook.com all blocked; all API testing must happen in browser or Vercel
-6. **X Analytics CSV has all the data needed** — Post id matches the status ID in the X URL
-7. **IG API returns last 100 posts only** — older clips won't get live IG data (currently covers ~3 months)
-8. **YouTube API is the only truly automatic data source** — don't ask Hernán for YT data, don't try to fetch it manually
-9. **Instagram API is also automatic** — don't ask for IG data either, just make sure token isn't expired
-10. **For monthly updates, Hernán provides exactly 3 things**: GSheet CSV, X Analytics CSV, TikTok screenshots. That's it. No back and forth.
+1. TikTok Studio CSV solo exporta top ~14 videos — screenshots son la única forma de obtener todos los clips
+2. Google Sheet episode titles ≠ clip titles — el sheet hereda un título por bloque de episodio; siempre obtener títulos reales de TikTok Studio
+3. `fetch-ig.js` debe usar Batch API — calls individuales por reel hacen timeout en Vercel free tier (10s)
+4. `googleapis.com` está bloqueado en el container de Claude — nunca llamar YouTube API desde Claude; solo funciona en serverless de Vercel
+5. No hay dominios externos accesibles desde el container de Claude — Vercel, googleapis, graph.facebook.com bloqueados; testing solo via Vercel MCP `web_fetch_vercel_url` o el browser
+6. X Analytics CSV tiene toda la data necesaria — Post id matches el status ID en el URL
+7. IG API retorna últimos 100 posts solo — clips más viejos no obtienen IG data en vivo
+8. YouTube API es la única fuente verdaderamente automática — no pidas YT data a Hernán, no intentes fetch manual
+9. Instagram API también es automática — no pidas IG data, solo asegúrate que el token no esté expirado
+10. Para updates mensuales, Hernán entrega exactamente 3 cosas: GSheet CSV, X Analytics CSV, TikTok Studio screenshots. Eso es todo.
+11. **(May 2)** El `_STATUS.md` puede desviarse del código real — el conteo de clips por mes y total deben verificarse con `grep -c "id: " index.html` antes de afirmar nada.
+12. **(May 2)** El IG token largo (60 días) significa que el refresh debe agendarse antes del día 50 — no esperar al 60.
