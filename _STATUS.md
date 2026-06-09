@@ -3,8 +3,8 @@
 **Repo:** `10amalpha/10ampro-shorts-analytics`
 **Live:** https://10ampro-shorts-analytics.vercel.app/
 **Last status update:** Jun 9, 2026
-**Last code commit:** `872d99b` — "feat: add 30 new clips (Mar/Apr gaps + full May, ids 162-191)" (Jun 9, 2026)
-**Last data update:** Jun 9, 2026 — 30 clips added from Gordo_clips xlsx (3 Mar gaps + 4 Apr gaps + 23 May), ids 162-191. Total 152 clips, 2025-12-15 → 2026-05-30. YT+IG auto-fill on load; TikTok/X at 0 (no API — pending manual TT Studio / X Analytics numbers)
+**Last code commit:** `9c57845` — "feat: load X Analytics (Mar12-Jun9), 64 clips refreshed" (Jun 9, 2026)
+**Last data update:** Jun 9, 2026 — (1) +30 clips from Gordo_clips xlsx (ids 162-191), total 152. (2) X Analytics loaded from Mar12-Jun9 export: 64 clips refreshed incl 28 of 30 new clips (X mapping: views=Impressions, likes=Likes, comments=Replies, shares=Reposts). Clips 162-163 (Mar 5-6) predate CSV window → X still 0. TikTok still 0 across new clips (no API — pending TT Studio numbers).
 
 ---
 
