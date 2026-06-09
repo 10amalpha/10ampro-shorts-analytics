@@ -2,16 +2,16 @@
 
 **Repo:** `10amalpha/10ampro-shorts-analytics`
 **Live:** https://10ampro-shorts-analytics.vercel.app/
-**Last status update:** May 2, 2026
-**Last code commit:** `eac8adf` — "feat: add TikTok views/likes/comments + real titles for April clips" (May 2, 2026)
-**Last data update:** May 2, 2026 — April 2026 fully loaded (22 clips, all 4 platforms)
+**Last status update:** Jun 9, 2026
+**Last code commit:** `872d99b` — "feat: add 30 new clips (Mar/Apr gaps + full May, ids 162-191)" (Jun 9, 2026)
+**Last data update:** Jun 9, 2026 — 30 clips added from Gordo_clips xlsx (3 Mar gaps + 4 Apr gaps + 23 May), ids 162-191. Total 152 clips, 2025-12-15 → 2026-05-30. YT+IG auto-fill on load; TikTok/X at 0 (no API — pending manual TT Studio / X Analytics numbers)
 
 ---
 
-## ⚠️ Pendientes inmediatos (May 2, 2026)
+## ⚠️ Pendientes inmediatos (Jun 9, 2026)
 
-1. **Renovar `IG_ACCESS_TOKEN`** — vence ~11 de mayo. Hoy todavía responde, pero quedan ~9 días. Refresh inmediato (ver sección IG Token Refresh abajo).
-2. **Mayo cargará automáticamente** cuando suba el GSheet + X Analytics CSV + screenshots de TT Studio (mismo proceso que abril).
+1. **`IG_ACCESS_TOKEN` CONFIRMADO VIVO Jun 9** — health check devolvió reels hasta Jun 7. Fue renovado en algún momento tras la estimación de mayo. Re-verificar ~Ago 2026.
+2. **TikTok + X de los 30 clips nuevos están en 0** — la hoja de Gordo solo trae URLs, no números. Cuando haya screenshots de TT Studio / export de X Analytics, cargar los números (merge por id, nunca reemplazar).
 
 ---
 
@@ -34,7 +34,7 @@ Single-page React app (`index.html`) con 3 Vercel serverless APIs:
 
 **Health check (verified May 2, 2026):**
 - `GET /api/fetch-yt?ids=LZTTyOad7Iw,V2pwKu1TbjU,ws6m6HoGZuc` → 200, retorna datos reales
-- `GET /api/fetch-ig` → 200, retorna 100 reels (rango Jan 15 → May 1)
+- `GET /api/fetch-ig` → 200, retorna 100 reels (rango Feb 8 → Jun 7, verified Jun 9)
 
 **Tabs (todas dinámicas, no requieren update manual):**
 - **Overview** — KPIs, distribución por plataforma, top 5, weekly performance, 🧠 Insights para El Gordo
@@ -150,7 +150,7 @@ git push
 | Item | Value | Expiry |
 |---|---|---|
 | YT API Key | `AIzaSyANRsjsV-WdoLxM9yEz-yIgBFBdoUYPXCw` | No expiry |
-| IG Access Token | Vercel env var `IG_ACCESS_TOKEN` | **~May 11, 2026 — RENOVAR YA** |
+| IG Access Token | Vercel env var `IG_ACCESS_TOKEN` | **Vivo Jun 9, 2026 — re-verificar ~Ago 2026** |
 | Meta App (10ampro-analytics) | ID: `1467796011515050` / Secret: `cb0a910adfb960054167df0681bb5b3a` | — |
 | FB Page ID | `1060185473841846` | — |
 | IG Business Account ID | `17841455171483266` | — |
