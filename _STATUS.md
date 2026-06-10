@@ -3,8 +3,8 @@
 **Repo:** `10amalpha/10ampro-shorts-analytics`
 **Live:** https://10ampro-shorts-analytics.vercel.app/
 **Last status update:** Jun 9, 2026
-**Last code commit:** `9c57845` — "feat: load X Analytics (Mar12-Jun9), 64 clips refreshed" (Jun 9, 2026)
-**Last data update:** Jun 9, 2026 — (1) +30 clips from Gordo_clips xlsx (ids 162-191), total 152. (2) X Analytics loaded from Mar12-Jun9 export: 64 clips refreshed incl 28 of 30 new clips (X mapping: views=Impressions, likes=Likes, comments=Replies, shares=Reposts). Clips 162-163 (Mar 5-6) predate CSV window → X still 0. TikTok still 0 across new clips (no API — pending TT Studio numbers).
+**Last code commit:** `61a8d00` — "feat: load TikTok via Studio API item_list, 63 clips, shares populated" (Jun 9, 2026)
+**Last data update:** Jun 9, 2026 — (1) +30 clips from Gordo_clips xlsx (ids 162-191), total 152. (2) X Analytics loaded (Mar12-Jun9 export): 64 clips, 28/30 new. (3) TikTok loaded via Studio internal API item_list (hooked XHR/fetch, parsed item_list JSON): 63 clips, 29/30 new clips. TikTok mapping: views=play_count, likes=like_count, comments=comment_count, shares=share_count. Shares now populated (previously all 0 from old DOM load). REMAINING GAPS: id162-163 (Mar5-6) X=0 (predate X CSV); id164 (Mar31) TikTok=0 (its page cursor 30-50 / Mar25-Apr7 was fetched before the capture hook installed and never re-fetched). All other 151 clips full across 4 platforms.
 
 ---
 
